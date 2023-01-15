@@ -228,7 +228,6 @@ fun Image.save(newID: String? = null): Boolean {
 fun Image.delete(): Boolean = genericDelete(GUID, "Image");
 
 // TODO: Category SQL Extensions
-
 fun Category.save(newID: String? = null): Boolean {
     val edit = objectExists(GUID, "Category")
     val query: String = if (edit) {
@@ -256,7 +255,6 @@ fun Category.save(newID: String? = null): Boolean {
 fun Category.delete(): Boolean = genericDelete(GUID, "Category");
 
 // TODO: User SQL Extensions
-
 fun User.save(newID: String? = null): Boolean {
     val edit = objectExists(GUID, "User")
     val query: String = if (edit) {
