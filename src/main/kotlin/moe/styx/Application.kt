@@ -14,9 +14,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import moe.styx.database.DbConfig
-import moe.styx.routes.deviceCreate
-import moe.styx.routes.deviceFirstAuth
-import moe.styx.routes.deviceLogin
+import moe.styx.routes.*
 import java.io.File
 import java.time.Duration
 import kotlin.system.exitProcess
@@ -24,6 +22,7 @@ import kotlin.system.exitProcess
 val json = Json {
     prettyPrint = true
     isLenient = true
+    ignoreUnknownKeys = true
 }
 var dbConfig: DbConfig = DbConfig("", "", "")
 
@@ -90,5 +89,11 @@ fun Application.module() {
         deviceLogin()
         deviceCreate()
         deviceFirstAuth()
+
+        mediaList()
+        mediaEntries()
+        images()
+        categories()
+        watch()
     }
 }

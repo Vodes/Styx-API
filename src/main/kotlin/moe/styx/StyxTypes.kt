@@ -64,3 +64,6 @@ data class Device(
     var GUID: String, var userID: String, var name: String, var deviceInfo: DeviceInfo,
     var lastUsed: Long, var accessToken: String, var watchToken: String, var refreshToken: String, var tokenExpiry: Long
 )
+
+@Serializable
+data class ApiResponse(var code: Int, var message: String?, var silent: Boolean = false)

@@ -144,3 +144,24 @@ fun getMediaInfo(): List<MediaInfo> {
     con.close()
     return mediaInfo
 }
+
+fun getAllImages(): List<Image> {
+    val images = mutableListOf<Image>()
+    val query = "SELECT * FROM Image;"
+    val (con, stat) = openStatement(query)
+    val rs = stat.executeQuery()
+    while (rs.next()) {
+        val image = Image(
+            rs.getString("GUID"),
+            rs.getInt("hasWEBP"),
+            rs.getInt("hasPNG"),
+            rs.getInt("hasJPG"),
+            rs.getString("externalURL"),
+            rs.getInt("type")
+        )
+        images.add(image)
+    }
+    stat.close()
+    con.close()
+    return images
+}
