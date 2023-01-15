@@ -15,6 +15,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import moe.styx.database.DbConfig
 import moe.styx.routes.deviceCreate
+import moe.styx.routes.deviceFirstAuth
 import moe.styx.routes.deviceLogin
 import java.io.File
 import java.time.Duration
@@ -88,5 +89,6 @@ fun Application.module() {
     routing {
         deviceLogin()
         deviceCreate()
+        deviceFirstAuth()
     }
 }

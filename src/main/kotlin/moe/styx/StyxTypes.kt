@@ -28,24 +28,39 @@ data class MediaEntry(
 
 @Serializable
 data class MediaInfo(
-    val entryID: String, val videoCodec: String, val videoBitdepth: Int, val videoRes: String,
-    val hasEnglishDub: Int, val hasGermanDub: Int, val hasGermanSub: Int
+    val entryID: String, var videoCodec: String, var videoBitdepth: Int, var videoRes: String,
+    var hasEnglishDub: Int, var hasGermanDub: Int, var hasGermanSub: Int
 )
 
 @Serializable
-data class MediaWatched(val entryID: String, val userID: String, val lastWatched: Long, val progress: Float)
+data class MediaWatched(val entryID: String, val userID: String, var lastWatched: Long, var progress: Float, var maxProgress: Float)
 
 @Serializable
 data class User(
-    val GUID: String, val name: String, val discordID: String, val added: Long, val lastLogin: Long,
-    val permissions: Int
+    val GUID: String, var name: String, var discordID: String, val added: Long, var lastLogin: Long,
+    var permissions: Int
 )
 
 @Serializable
 data class LoginResponse(
     val name: String, val permissions: Int, val accessToken: String, val watchToken: String,
-    val tokenExpiry: Long
+    val tokenExpiry: Long, val refreshToken: String? = null
 )
 
 @Serializable
-data class CreationResponse(val code: Int, val expiry: Long)
+data class CreationResponse(val GUID: String, val code: Int, val expiry: Long)
+
+@Serializable
+data class DeviceInfo(
+    val type: String, val name: String?, val model: String?, val cpu: String?, val gpu: String?,
+    val os: String, val osVersion: String?, var jvm: String?, var jvmVersion: String?
+)
+
+@Serializable
+data class UnregisteredDevice(val GUID: String, val deviceInfo: DeviceInfo, val codeExpiry: Long, val code: Int)
+
+@Serializable
+data class Device(
+    var GUID: String, var userID: String, var name: String, var deviceInfo: DeviceInfo,
+    var lastUsed: Long, var accessToken: String, var watchToken: String, var refreshToken: String, var tokenExpiry: Long
+)

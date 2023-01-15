@@ -2,6 +2,7 @@ package moe.styx.database
 
 import kotlinx.serialization.Serializable
 import moe.styx.dbConfig
+import moe.styx.toBoolean
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.PreparedStatement
@@ -27,6 +28,26 @@ fun objectExists(GUID: String, table: String, identifier: String = "GUID"): Bool
     stat.close()
     con.close()
     return exists
+}
+
+fun objectExistsTwo(ID: String, ID2: String, content: String, content2: String, table: String): Boolean {
+    val (con, stat) = openStatement("SELECT * FROM $table WHERE $ID=? AND $ID2=?;")
+    stat.setString(1, content)
+    stat.setString(2, content2)
+    val results = stat.executeQuery()
+    val exists = results.next()
+    stat.close()
+    con.close()
+    return exists
+}
+
+fun genericDelete(GUID: String, table: String, identifier: String = "GUID"): Boolean {
+    val (con, stat) = openStatement("DELETE FROM $table WHERE $identifier=?;")
+    stat.setString(1, GUID)
+    val i = stat.executeUpdate()
+    stat.close()
+    con.close()
+    return i.toBoolean()
 }
 
 @Serializable
