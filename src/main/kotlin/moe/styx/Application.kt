@@ -15,6 +15,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import moe.styx.database.DbConfig
 import moe.styx.routes.*
+import moe.styx.tasks.startTasks
 import java.io.File
 import java.time.Duration
 import kotlin.system.exitProcess
@@ -51,6 +52,8 @@ fun loadDBConfig() {
 
 fun main() {
     loadDBConfig()
+
+    startTasks()
 
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
         .start(wait = true)

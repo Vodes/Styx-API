@@ -1,13 +1,12 @@
 package moe.styx.routes
 
 import io.ktor.http.*
+import io.ktor.http.content.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import moe.styx.ApiResponse
-import moe.styx.getDevices
-import moe.styx.getMediaEntries
-import moe.styx.getUsers
+import moe.styx.*
+import moe.styx.routes.watch.CustomLocalFileContent
 import java.io.File
 
 fun Route.watch() {
@@ -27,8 +26,8 @@ fun Route.watch() {
                 return@get
             }
 
-            val users = getUsers().filter { it.GUID.equals(device.userID, true) }
-            if (users.isEmpty()) {
+            val user = getUsers().find { it.GUID.equals(device.userID, true) }
+            if (user == null) {
                 call.respond(HttpStatusCode.Unauthorized, ApiResponse(401, "No user relating to this device has been found."))
                 return@get
             }
@@ -39,15 +38,19 @@ fun Route.watch() {
                 return@get
             }
 
-            val entry = File(entries[0].filePath)
+            val entry = File("E:\\Encoding Stuff\\# Doing\\Made in Abyss S2 (BD)\\premux\\Made in Abyss - S0201 v3 (premux).mkv")
 
             if (!entry.exists()) {
                 call.respond(HttpStatusCode.InternalServerError, ApiResponse(500, "The file for this media could not be found."))
                 return@get
             }
-
-            call.respondFile(entry)
+            call.customRespondFile(entry, device, user)
         } else
             call.respond(HttpStatusCode.BadRequest, ApiResponse(400, "No token was found in your request."))
     }
+}
+
+suspend fun ApplicationCall.customRespondFile(file: File, device: Device, user: User, configure: OutgoingContent.() -> Unit = {}) {
+    val message = CustomLocalFileContent(file, device = device, user = user).apply(configure)
+    respond(message)
 }
