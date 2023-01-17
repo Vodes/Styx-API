@@ -93,7 +93,7 @@ fun getMedia(): List<Media> {
             rs.getString("categoryID"), rs.getString("prequel"),
             rs.getString("sequel"), rs.getString("genres"),
             rs.getString("tags"), rs.getString("metadataMap"),
-            rs.getInt("isSeries")
+            rs.getInt("isSeries"), rs.getLong("added")
         )
         media.add(mediaItem)
     }

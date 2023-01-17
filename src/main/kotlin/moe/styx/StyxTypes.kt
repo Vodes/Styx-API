@@ -7,7 +7,7 @@ data class Media(
     val GUID: String, val name: String, val nameJP: String?, val nameEN: String?, val synopsisEN: String?,
     val synopsisDE: String?, val thumbID: String?, val bannerID: String? = null, val categoryID: String? = null,
     val prequel: String? = null, val sequel: String? = null, val genres: String? = null, val tags: String? = null,
-    val metadataMap: String? = null, val isSeries: Int = 1
+    val metadataMap: String? = null, val isSeries: Int = 1, val added: Long = 0
 )
 
 @Serializable

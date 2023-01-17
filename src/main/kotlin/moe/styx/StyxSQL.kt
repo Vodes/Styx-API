@@ -135,9 +135,9 @@ fun MediaWatched.delete(): Boolean {
 fun Media.save(newID: String? = null): Boolean {
     val edit = objectExists(GUID, "Media", "GUID")
     val query: String = if (edit)
-        "UPDATE Media SET GUID=?, name=?, nameJP=?, nameEN=?, synopsisEN=?, synopsisDE=?, thumbID=?, bannerID=?, categoryID=?, prequel=?, sequel=?, genres=?, tags=?, metadataMap=?, isSeries=? WHERE GUID=?;"
+        "UPDATE Media SET GUID=?, name=?, nameJP=?, nameEN=?, synopsisEN=?, synopsisDE=?, thumbID=?, bannerID=?, categoryID=?, prequel=?, sequel=?, genres=?, tags=?, metadataMap=?, isSeries=?, added=? WHERE GUID=?;"
     else
-        "INSERT INTO Media (GUID, name, nameJP, nameEN, synopsisEN, synopsisDE, thumbID, bannerID, categoryID, prequel, sequel, genres, tags, metadataMap, isSeries) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
+        "INSERT INTO Media (GUID, name, nameJP, nameEN, synopsisEN, synopsisDE, thumbID, bannerID, categoryID, prequel, sequel, genres, tags, metadataMap, isSeries, added) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
 
     val (con, stat) = openStatement(query)
     stat.setString(1, if (newID.isNullOrBlank()) GUID else newID)
@@ -155,8 +155,9 @@ fun Media.save(newID: String? = null): Boolean {
     stat.setString(13, tags)
     stat.setString(14, metadataMap)
     stat.setInt(15, isSeries)
+    stat.setLong(16, added)
     if (edit) {
-        stat.setString(16, GUID)
+        stat.setString(17, GUID)
     }
 
     val i = stat.executeUpdate()
