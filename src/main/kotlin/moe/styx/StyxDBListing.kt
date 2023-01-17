@@ -64,7 +64,7 @@ fun getUsers(): List<User> {
 
 fun getCategories(): List<Category> {
     val categories = mutableListOf<Category>()
-    val query = "SELECT * FROM Category;"
+    val query = "SELECT * FROM Category ORDER BY isSeries DESC, sort DESC;"
     val (con, stat) = openStatement(query)
     val rs = stat.executeQuery()
     while (rs.next()) {

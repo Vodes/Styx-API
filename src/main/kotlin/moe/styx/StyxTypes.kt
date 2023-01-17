@@ -16,7 +16,7 @@ data class Category(val GUID: String, val sort: Int, val isSeries: Int, val isVi
 @Serializable
 data class Image(
     val GUID: String, val hasWEBP: Int? = 0, val hasPNG: Int? = 0,
-    val hasJPG: Int? = 0, val externalURL: String?, val type: Int = 0
+    val hasJPG: Int? = 0, val externalURL: String? = null, val type: Int = 0
 )
 
 @Serializable
