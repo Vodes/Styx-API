@@ -10,11 +10,11 @@ import moe.styx.routes.watch.CustomLocalFileContent
 import java.io.File
 
 fun Route.watch() {
-    get("/watch") {
+    get("/watch/{media}") {
         val params = call.request.queryParameters
         val token = params["token"]
 
-        if (params["media"].isNullOrBlank()) {
+        if (call.parameters["media"].isNullOrBlank()) {
             call.respond(HttpStatusCode.BadRequest, ApiResponse(400, "No media ID was found in your request."))
             return@get
         }
@@ -32,7 +32,7 @@ fun Route.watch() {
                 return@get
             }
 
-            val entries = getMediaEntries().filter { it.GUID.equals(params["media"], true) }
+            val entries = getMediaEntries().filter { it.GUID.equals(call.parameters["media"], true) }
             if (entries.isEmpty()) {
                 call.respond(HttpStatusCode.NotFound, ApiResponse(404, "No media has been found for this ID."))
                 return@get
@@ -44,13 +44,13 @@ fun Route.watch() {
                 call.respond(HttpStatusCode.InternalServerError, ApiResponse(500, "The file for this media could not be found."))
                 return@get
             }
-            call.customRespondFile(entry, device, user)
+            call.customRespondFile(entry, device)
         } else
             call.respond(HttpStatusCode.BadRequest, ApiResponse(400, "No token was found in your request."))
     }
 }
 
-suspend fun ApplicationCall.customRespondFile(file: File, device: Device, user: User, configure: OutgoingContent.() -> Unit = {}) {
-    val message = CustomLocalFileContent(file, device = device, user = user).apply(configure)
+suspend fun ApplicationCall.customRespondFile(file: File, device: Device, configure: OutgoingContent.() -> Unit = {}) {
+    val message = CustomLocalFileContent(file, device = device).apply(configure)
     respond(message)
 }

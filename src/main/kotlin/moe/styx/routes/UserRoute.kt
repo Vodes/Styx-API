@@ -6,10 +6,10 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
 import kotlinx.serialization.decodeFromString
 import moe.styx.*
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.util.*
 import kotlin.random.Random
 
@@ -116,14 +116,14 @@ public fun Route.deviceFirstAuth() {
 private fun createLoginResponse(device: Device, user: User, first: Boolean = false): LoginResponse {
     device.accessToken = UUID.randomUUID().toString().uppercase()
     device.watchToken = UUID.randomUUID().toString().uppercase()
-    val now = Instant.now()
-    device.lastUsed = now.epochSecond
-    device.tokenExpiry = now.plus(24, ChronoUnit.HOURS).epochSecond
+    val now = Clock.System.now()
+    device.lastUsed = now.epochSeconds
+    device.tokenExpiry = now.plus(24, DateTimeUnit.HOUR).epochSeconds
     if (first)
         device.refreshToken = UUID.randomUUID().toString().uppercase()
 
     device.save()
-    user.lastLogin = now.epochSecond
+    user.lastLogin = now.epochSeconds
     user.save()
 
     return LoginResponse(user.name, 0, device.accessToken, device.watchToken, device.tokenExpiry, if (first) device.refreshToken else null)

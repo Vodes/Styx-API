@@ -11,7 +11,6 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import moe.styx.Device
-import moe.styx.User
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
@@ -22,8 +21,7 @@ fun File.customReadChannel(
     start: Long = 0,
     endInclusive: Long = -1,
     coroutineContext: CoroutineContext = Dispatchers.IO,
-    device: Device,
-    user: User
+    device: Device
 ): ByteReadChannel {
     val fileLength = length()
     return CoroutineScope(coroutineContext).writer(CoroutineName("file-reader") + coroutineContext, autoFlush = false) {
@@ -54,7 +52,8 @@ fun File.customReadChannel(
                         val rc = fileChannel.read(buffer)
                         if (rc == -1) break
 
-                        println(rc.toString())
+                        addTraffic(device, rc.toLong())
+
                         written(rc)
                     }
                 }
@@ -89,8 +88,7 @@ fun File.customReadChannel(
 class CustomLocalFileContent(
     val file: File,
     override val contentType: ContentType = ContentType.defaultForFile(file),
-    val device: Device,
-    val user: User
+    val device: Device
 ) : OutgoingContent.ReadChannelContent() {
 
     override val contentLength: Long get() = file.length()
@@ -104,7 +102,7 @@ class CustomLocalFileContent(
         }
     }
 
-    override fun readFrom(): ByteReadChannel = file.customReadChannel(user = user, device = device)
+    override fun readFrom(): ByteReadChannel = file.customReadChannel(device = device)
 
-    override fun readFrom(range: LongRange): ByteReadChannel = file.customReadChannel(range.start, range.endInclusive, user = user, device = device)
+    override fun readFrom(range: LongRange): ByteReadChannel = file.customReadChannel(range.start, range.endInclusive, device = device)
 }
