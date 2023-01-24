@@ -52,3 +52,6 @@ fun genericDelete(GUID: String, table: String, identifier: String = "GUID"): Boo
 
 @Serializable
 data class DbConfig(val ip: String, val user: String, val pass: String)
+
+@Serializable
+data class Changes(val media: Long, val entry: Long)

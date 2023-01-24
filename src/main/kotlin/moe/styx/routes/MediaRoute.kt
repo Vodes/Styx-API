@@ -48,6 +48,12 @@ fun Route.images() {
     }
 }
 
+fun Route.changes() {
+    get("/changes") {
+        call.respond(HttpStatusCode.OK, changes)
+    }
+}
+
 fun Route.categories() {
     post("/media/categories") {
         val form = call.receiveParameters()

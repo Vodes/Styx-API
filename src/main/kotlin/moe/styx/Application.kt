@@ -13,6 +13,7 @@ import io.ktor.server.websocket.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import moe.styx.database.Changes
 import moe.styx.database.DbConfig
 import moe.styx.routes.*
 import moe.styx.tasks.startTasks
@@ -26,28 +27,43 @@ val json = Json {
     ignoreUnknownKeys = true
 }
 var dbConfig: DbConfig = DbConfig("", "", "")
+var changes: Changes = Changes(0, 0)
+
+private var changesFile: File = File("")
+private var configFile: File = File("")
 
 fun loadDBConfig() {
-    var configFile: File
     if (System.getProperty("os.name").lowercase().contains("win")) {
         val styxDir = File(System.getenv("APPDATA"), "Styx")
         val apiDir = File(styxDir, "API-v2")
         apiDir.mkdirs()
         configFile = File(apiDir, "dbConfig.json")
+        changesFile = File(apiDir, "changes.json")
     } else {
         val configDir = File(System.getProperty("user.dir"), ".config")
         val styxDir = File(configDir, "Styx")
         val apiDir = File(styxDir, "API-v2")
         apiDir.mkdirs()
         configFile = File(apiDir, "dbConfig.json")
+        changesFile = File(apiDir, "changes.json")
     }
     if (!configFile.exists()) {
-        configFile.writeText(json.encodeToString<DbConfig>(dbConfig), Charsets.UTF_8)
+        configFile.writeText(json.encodeToString(dbConfig), Charsets.UTF_8)
         println("Please fill in your dbconfig.json! Located at: ${configFile.parentFile.absolutePath}")
         exitProcess(1)
     }
 
-    dbConfig = json.decodeFromString<DbConfig>(configFile.readText(Charsets.UTF_8))
+    if (!changesFile.exists()) {
+        changesFile.writeText(json.encodeToString(changes), Charsets.UTF_8)
+    }
+
+    dbConfig = json.decodeFromString(configFile.readText(Charsets.UTF_8))
+    changes = json.decodeFromString(changesFile.readText(Charsets.UTF_8))
+}
+
+fun updateChanges(media: Long, entry: Long) {
+    changes = Changes(media, entry)
+    changesFile.writeText(json.encodeToString(changes), Charsets.UTF_8)
 }
 
 fun main() {
@@ -67,7 +83,7 @@ fun Application.module() {
         }
         deflate {
             priority = 10.0
-            minimumSize(1024) // condition
+            minimumSize(512) // condition
         }
     }
     install(DefaultHeaders) {
@@ -98,5 +114,7 @@ fun Application.module() {
         images()
         categories()
         watch()
+
+        changes()
     }
 }
