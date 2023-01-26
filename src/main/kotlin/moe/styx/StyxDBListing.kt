@@ -145,6 +145,20 @@ fun getMediaInfo(): List<MediaInfo> {
     return mediaInfo
 }
 
+fun getFavourites(): List<Favourite> {
+    val favs = mutableListOf<Favourite>()
+    val query = "SELECT * FROM Favourites;"
+    val (con, stat) = openStatement(query)
+    val rs = stat.executeQuery()
+    while (rs.next()) {
+        val fav = Favourite(rs.getString("mediaID"), rs.getString("userID"), rs.getLong("added"))
+        favs.add(fav)
+    }
+    stat.close()
+    con.close()
+    return favs
+}
+
 fun getAllImages(): List<Image> {
     val images = mutableListOf<Image>()
     val query = "SELECT * FROM Image;"

@@ -131,6 +131,38 @@ fun MediaWatched.delete(): Boolean {
     return i.toBoolean()
 }
 
+fun Favourite.save(newID: String? = null): Boolean {
+    val edit = objectExistsTwo("mediaID", "userID", mediaID, userID, "Favourites")
+    val query: String = if (edit)
+        "UPDATE MediaWatched SET mediaID=?, userID=?, added=? WHERE entryID=? AND userID=?;"
+    else
+        "INSERT INTO MediaWatched (mediaID, userID, added) VALUES(?, ?, ?);"
+
+    val (con, stat) = openStatement(query)
+    stat.setString(1, mediaID)
+    stat.setString(2, userID)
+    stat.setLong(3, added)
+    if (edit) {
+        stat.setString(4, mediaID)
+        stat.setString(5, userID)
+    }
+
+    val i = stat.executeUpdate()
+    stat.close()
+    con.close()
+    return i.toBoolean()
+}
+
+fun Favourite.delete(): Boolean {
+    val (con, stat) = openStatement("DELETE FROM MediaWatched WHERE WHERE mediaID=? AND userID=?;")
+    stat.setString(1, mediaID)
+    stat.setString(2, userID)
+    val i = stat.executeUpdate()
+    stat.close()
+    con.close()
+    return i.toBoolean()
+}
+
 // TODO: Media SQL Extensions
 fun Media.save(newID: String? = null): Boolean {
     val edit = objectExists(GUID, "Media", "GUID")

@@ -113,6 +113,7 @@ fun Application.module() {
         mediaEntries()
         images()
         categories()
+        favourites()
         watch()
 
         changes()

@@ -42,6 +42,10 @@ data class User(
 )
 
 @Serializable
+data class Favourite(val mediaID: String, var userID: String, var added: Long)
+
+
+@Serializable
 data class LoginResponse(
     val name: String, val permissions: Int, val accessToken: String, val watchToken: String,
     val tokenExpiry: Long, val refreshToken: String? = null
