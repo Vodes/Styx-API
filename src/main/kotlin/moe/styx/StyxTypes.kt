@@ -33,7 +33,7 @@ data class MediaInfo(
 )
 
 @Serializable
-data class MediaWatched(val entryID: String, val userID: String, var lastWatched: Long, var progress: Float, var maxProgress: Float)
+data class MediaWatched(val entryID: String, val userID: String, var lastWatched: Long, var progress: Long, var progressPercent: Float, var maxProgress: Float)
 
 @Serializable
 data class User(
@@ -71,3 +71,10 @@ data class Device(
 
 @Serializable
 data class ApiResponse(var code: Int, var message: String?, var silent: Boolean = false)
+
+@Serializable
+data class MediaSchedule(var mediaID: String, var day: ScheduleWeekday, var hour: Int, var minute: Int, var isEstimated: Int = 0, var finalEpisodeCount: Int = 0)
+
+enum class ScheduleWeekday {
+    MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY
+}

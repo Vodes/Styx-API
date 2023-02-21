@@ -38,7 +38,12 @@ fun Route.watch() {
                 return@get
             }
 
-            val entry = File("E:\\Encoding Stuff\\# Doing\\Made in Abyss S2 (BD)\\premux\\Made in Abyss - S0201 v3 (premux).mkv")
+            val entry = File(
+                if (System.getProperty("os.name").contains("win", true))
+                    "E:\\Encoding Stuff\\# Doing\\Made in Abyss S2 (BD)\\premux\\Made in Abyss - S02E01 v6 (premux).mkv"
+                else
+                    entries[0].filePath
+            )
 
             if (!entry.exists()) {
                 call.respond(HttpStatusCode.InternalServerError, ApiResponse(500, "The file for this media could not be found."))

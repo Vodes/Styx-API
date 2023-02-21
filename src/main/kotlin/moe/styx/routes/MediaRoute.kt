@@ -49,6 +49,22 @@ fun Route.images() {
     }
 }
 
+fun Route.schedules() {
+    post("/media/schedules") {
+        val form = call.receiveParameters()
+        val token = form["token"]
+        if (!token.isNullOrBlank()) {
+
+            if (!checkToken(token, call))
+                return@post
+
+            call.respond(HttpStatusCode.OK, getAllMediaSchedules())
+        } else
+            call.respond(HttpStatusCode.BadRequest, ApiResponse(HttpStatusCode.BadRequest.value, "No token was found in your request."))
+    }
+}
+
+
 fun Route.changes() {
     get("/changes") {
         call.respond(HttpStatusCode.OK, changes)

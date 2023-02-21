@@ -179,3 +179,24 @@ fun getAllImages(): List<Image> {
     con.close()
     return images
 }
+
+fun getAllMediaSchedules(): List<MediaSchedule> {
+    val query = "SELECT * FROM MediaSchedule;"
+    val (con, stat) = openStatement(query)
+    val result = stat.executeQuery()
+    val mediaSchedules = mutableListOf<MediaSchedule>()
+    while (result.next()) {
+        mediaSchedules.add(
+            MediaSchedule(
+                result.getString("mediaID"),
+                ScheduleWeekday.valueOf(result.getString("day")),
+                result.getInt("hour"),
+                result.getInt("minute"),
+                result.getInt("isEstimated"),
+                result.getInt("finalEpisodeCount")
+            )
+        )
+    }
+    con.close()
+    return mediaSchedules
+}

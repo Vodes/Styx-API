@@ -98,21 +98,22 @@ fun MediaInfo.delete(): Boolean = genericDelete(entryID, "MediaInfo", "entryID")
 
 // TODO: MediaWatched SQL Extensions
 fun MediaWatched.save(newID: String? = null): Boolean {
-    val edit = objectExistsTwo("entryID", "userID", entryID, userID, "MediaInfo")
+    val edit = objectExistsTwo("entryID", "userID", entryID, userID, "MediaWatched")
     val query: String = if (edit)
-        "UPDATE MediaWatched SET entryID=?, userID=?, lastWatched=?, progress=?, maxProgress=? WHERE entryID=? AND userID=?;"
+        "UPDATE MediaWatched SET entryID=?, userID=?, lastWatched=?, progress=?, progressPercent=?, maxProgress=? WHERE entryID=? AND userID=?;"
     else
-        "INSERT INTO MediaWatched (entryID, userID, lastWatched, progress, maxProgress) VALUES(?, ?, ?, ?, ?);"
+        "INSERT INTO MediaWatched (entryID, userID, lastWatched, progress, progressPercent, maxProgress) VALUES(?, ?, ?, ?, ?, ?);"
 
     val (con, stat) = openStatement(query)
     stat.setString(1, entryID)
     stat.setString(2, userID)
     stat.setLong(3, lastWatched)
-    stat.setFloat(4, progress)
-    stat.setFloat(5, maxProgress)
+    stat.setLong(4, progress)
+    stat.setFloat(5, progressPercent)
+    stat.setFloat(6, maxProgress)
     if (edit) {
-        stat.setString(6, entryID)
-        stat.setString(7, userID)
+        stat.setString(7, entryID)
+        stat.setString(8, userID)
     }
 
     val i = stat.executeUpdate()
@@ -232,6 +233,32 @@ fun MediaEntry.save(newID: String? = null): Boolean {
 }
 
 fun MediaEntry.delete(): Boolean = genericDelete(GUID, "MediaEntry");
+
+// TODO: MediaSchedule SQL Extensions
+fun MediaSchedule.save(): Boolean {
+    val edit = objectExists(mediaID, "MediaSchedule", "mediaID")
+    val query = if (edit)
+        "UPDATE MediaSchedule SET mediaID=?, day=?, hour=?, minute=?, isEstimated=?, finalEpisodeCount=? WHERE mediaID=?;"
+    else
+        "INSERT INTO MediaSchedule (mediaID, day, hour, minute, isEstimated, finalEpisodeCount) VALUES (?, ?, ?, ?, ?, ?);"
+
+    val (con, stat) = openStatement(query)
+    stat.setString(1, mediaID)
+    stat.setString(2, day.name)
+    stat.setInt(3, hour)
+    stat.setInt(4, minute)
+    stat.setInt(5, isEstimated)
+    stat.setInt(6, finalEpisodeCount)
+    if (edit)
+        stat.setString(7, mediaID)
+
+    val i = stat.executeUpdate()
+    stat.close()
+    con.close()
+    return i.toBoolean()
+}
+
+fun MediaSchedule.delete(): Boolean = genericDelete(mediaID, "MediaSchedule", "mediaID");
 
 // TODO: Image SQL Extensions
 fun Image.save(newID: String? = null): Boolean {
