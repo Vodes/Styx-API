@@ -1,11 +1,10 @@
 val ktor_version: String by project
-val kotlin_version: String by project
 val logback_version: String by project
 
 plugins {
-    kotlin("jvm") version "1.7.22"
+    kotlin("jvm") version "1.8.10"
     id("io.ktor.plugin") version "2.2.1"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.7.22"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.8.10"
 }
 
 group = "moe.styx"
@@ -41,5 +40,5 @@ dependencies {
     implementation("io.ktor:ktor-network-tls-jvm:2.2.2")
 
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.10")
 }
