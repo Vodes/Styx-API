@@ -12,14 +12,19 @@ fun startTasks() {
         scope.launch {
             if (task.initialWait > 0)
                 delay(task.initialWait * 1000L)
-
+            var failed = 0
+            var lastfailed: Boolean
             while (true) {
                 try {
+                    lastfailed = false
                     task.run()
-                    delay(task.seconds * 1000L)
                 } catch (ex: Exception) {
                     ex.printStackTrace()
+                    failed++
+                    lastfailed = true
                 }
+                if (!lastfailed || (lastfailed && failed < 3))
+                    delay(task.seconds * 1000L)
             }
         }
     }

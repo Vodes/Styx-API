@@ -66,8 +66,6 @@ fun updateChanges(media: Long, entry: Long) {
     changesFile.writeText(json.encodeToString(changes))
 }
 
-fun main() {
-    loadDBConfig()
 //    MediaSchedule("63D8E793-42FC-4954-8493-FEC2F540E725", ScheduleWeekday.WEDNESDAY, 15, 0, 0, 12).save()
 //    MediaSchedule("E341CD0C-1624-4142-8A7F-FD1C5AD915C2", ScheduleWeekday.SUNDAY, 4, 0, 0, 0).save()
 //    MediaSchedule("B7694A16-1804-4792-9D96-B36C8440E467", ScheduleWeekday.SATURDAY, 17, 30, 0, 0).save()
@@ -76,6 +74,8 @@ fun main() {
 //
 //    val list = getAllMediaSchedules()
 
+fun main() {
+    loadDBConfig()
     startTasks()
 
     if (!System.getProperty("os.name").contains("win", true) && changes.media == 0L)
@@ -83,7 +83,6 @@ fun main() {
 
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
         .start(wait = true)
-
 }
 
 fun Application.module() {

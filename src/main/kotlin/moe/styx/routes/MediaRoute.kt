@@ -7,8 +7,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.decodeFromString
 import moe.styx.*
+import java.io.File
 
 fun Route.mediaList() {
     post("/media/list") {
@@ -74,80 +74,39 @@ fun Route.favourites() {
         val user = checkTokenUser(token, call) ?: return@post
         call.respond(HttpStatusCode.OK, getFavourites().filter { it.userID.equals(user.GUID, true) })
     }
+
     post("/favourites/add/{media}") {
         val form = call.receiveParameters()
         val token = form["token"]
 
-        if (call.parameters["media"].isNullOrBlank()) {
-            call.respond(HttpStatusCode.BadRequest, ApiResponse(400, "No media ID was found in your request."))
+        val (user, device) = checkTokenDeviceUser(token, call)
+        if (device == null || user == null)
             return@post
+
+        val media = checkMedia(call.parameters["media"], call) ?: return@post
+
+        if (Favourite(media.GUID, user.GUID, Clock.System.now().epochSeconds).save()) {
+            call.respondStyx(HttpStatusCode.OK, "Favourite added.")
+        } else {
+            call.respondStyx(HttpStatusCode.InternalServerError, "Failed to add favourite.")
         }
-
-        if (!token.isNullOrBlank()) {
-            val device = getDevices().find { it.accessToken.equals(token, true) }
-            if (device == null) {
-                call.respond(HttpStatusCode.Unauthorized, ApiResponse(HttpStatusCode.Unauthorized.value, "No device has been found for this token."))
-                return@post
-            }
-
-            val user = getUsers().find { it.GUID.equals(device.userID, true) }
-            if (user == null) {
-                call.respond(HttpStatusCode.Unauthorized, ApiResponse(HttpStatusCode.Unauthorized.value, "No user relating to this device has been found."))
-                return@post
-            }
-
-            val media = getMedia().find { it.GUID.equals(call.parameters["media"], true) }
-
-            if (media == null) {
-                call.respond(HttpStatusCode.BadRequest, ApiResponse(404, "No media with that ID was found."))
-                return@post
-            }
-
-            if (Favourite(media.GUID, user.GUID, Clock.System.now().epochSeconds).save()) {
-                call.respond(HttpStatusCode.OK, ApiResponse(HttpStatusCode.OK.value, "Favourite added."))
-            } else {
-                call.respond(HttpStatusCode.InternalServerError, ApiResponse(HttpStatusCode.InternalServerError.value, "Failed to add favourite."))
-            }
-        } else
-            call.respond(HttpStatusCode.BadRequest, ApiResponse(HttpStatusCode.BadRequest.value, "No token was found in your request."))
     }
 
     post("/favourites/delete/{media}") {
         val form = call.receiveParameters()
         val token = form["token"]
 
-        if (call.parameters["media"].isNullOrBlank()) {
-            call.respond(HttpStatusCode.BadRequest, ApiResponse(400, "No media ID was found in your request."))
+        val (user, device) = checkTokenDeviceUser(token, call)
+        if (device == null || user == null)
             return@post
+
+        val media = checkMedia(call.parameters["media"], call) ?: return@post
+
+        if (Favourite(media.GUID, user.GUID, 0L).delete()) {
+            call.respondStyx(HttpStatusCode.OK, "Favourite deleted.")
+        } else {
+            call.respondStyx(HttpStatusCode.InternalServerError, "Failed to delete favourite.")
         }
-
-        if (!token.isNullOrBlank()) {
-            val device = getDevices().find { it.accessToken.equals(token, true) }
-            if (device == null) {
-                call.respond(HttpStatusCode.Unauthorized, ApiResponse(HttpStatusCode.Unauthorized.value, "No device has been found for this token."))
-                return@post
-            }
-
-            val user = getUsers().find { it.GUID.equals(device.userID, true) }
-            if (user == null) {
-                call.respond(HttpStatusCode.Unauthorized, ApiResponse(HttpStatusCode.Unauthorized.value, "No user relating to this device has been found."))
-                return@post
-            }
-
-            val media = getMedia().find { it.GUID.equals(call.parameters["media"], true) }
-
-            if (media == null) {
-                call.respond(HttpStatusCode.BadRequest, ApiResponse(404, "No media with that ID was found."))
-                return@post
-            }
-
-            if (Favourite(media.GUID, user.GUID, 0L).delete()) {
-                call.respond(HttpStatusCode.OK, ApiResponse(HttpStatusCode.OK.value, "Favourite deleted."))
-            } else {
-                call.respond(HttpStatusCode.InternalServerError, ApiResponse(HttpStatusCode.InternalServerError.value, "Failed to delete favourite."))
-            }
-        } else
-            call.respond(HttpStatusCode.BadRequest, ApiResponse(HttpStatusCode.BadRequest.value, "No token was found in your request."))
     }
 
     post("/favourites/sync") {
@@ -180,26 +139,63 @@ fun Route.favourites() {
     }
 }
 
+suspend fun checkMedia(id: String?, call: ApplicationCall): Media? {
+    if (id.isNullOrBlank()) {
+        call.respondStyx(HttpStatusCode.BadRequest, "No media ID was found in your request.")
+        return null
+    }
+    val media = getMedia().find { it.GUID.equals(call.parameters["media"], true) }
+
+    if (media == null)
+        call.respondStyx(HttpStatusCode.NotFound, "No media with that ID was found.")
+
+    return media
+}
+
+suspend fun checkMediaEntry(id: String?, call: ApplicationCall): MediaEntry? {
+    if (id.isNullOrBlank()) {
+        call.respondStyx(HttpStatusCode.BadRequest, "No entry ID was found in your request.")
+        return null
+    }
+    val entry = getMediaEntries().find { it.GUID.equals(call.parameters["media"], true) }
+
+    if (entry == null)
+        call.respondStyx(HttpStatusCode.NotFound, "No entry with that ID was found.")
+
+    if (entry != null) {
+        val entryFile = File(
+            if (System.getProperty("os.name").contains("win", true))
+                "E:\\Encoding Stuff\\# Doing\\KKS\\premux\\Kekkai Sensen - S01E02 (premux) [BC46BD78].mkv"
+            else
+                entry.filePath
+        )
+        if (!entryFile.exists()) {
+            call.respondStyx(HttpStatusCode.InternalServerError, "The file for this media entry was not found.")
+            return null
+        }
+    }
+    return entry
+}
+
 suspend fun checkToken(token: String?, call: ApplicationCall): Boolean {
     return checkTokenUser(token, call) != null
 }
 
 suspend fun checkTokenUser(token: String?, call: ApplicationCall): User? {
-    if (token == null) {
-        call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.")
-        return null
-    }
+    return checkTokenDeviceUser(token, call).first
+}
+
+suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall): Pair<User?, Device?> {
+    if (token == null)
+        call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.").also { return Pair(null, null) }
 
     val device = getDevices().find { it.accessToken.equals(token, true) }
-    if (device == null) {
-        call.respondStyx(HttpStatusCode.Unauthorized, "No device has been found for this token.")
-        return null
-    }
+    if (device == null)
+        call.respondStyx(HttpStatusCode.Unauthorized, "No device has been found for this token.").also { return Pair(null, null) }
 
-    val user = getUsers().find { it.GUID.equals(device.userID, true) }
-    if (user == null) {
+    val user = getUsers().find { it.GUID.equals(device!!.userID, true) }
+    if (user == null)
         call.respondStyx(HttpStatusCode.Unauthorized, "No user relating to this device has been found.")
-        return null
-    }
-    return user
+
+    return Pair(user, device)
 }

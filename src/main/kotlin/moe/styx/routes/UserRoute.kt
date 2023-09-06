@@ -8,39 +8,22 @@ import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
-import kotlinx.serialization.decodeFromString
 import moe.styx.*
 import java.util.*
 import kotlin.random.Random
 
-public fun Route.deviceLogin() {
+fun Route.deviceLogin() {
     post("/login") {
         val form = call.receiveParameters()
         val token = form["token"]
-        if (!token.isNullOrBlank()) {
-            val device = getDevices().find { it.refreshToken.equals(token, true) }
-            if (device == null) {
-                call.respond(
-                    HttpStatusCode.Unauthorized, ApiResponse(401, "No device has been found for this token.")
-                )
-                return@post
-            }
-            val users = getUsers().filter { it.GUID.equals(device.userID, true) }
-            if (users.isEmpty()) {
-                call.respond(
-                    HttpStatusCode.Unauthorized, ApiResponse(401, "No user relating to this device has been found.")
-                )
-                return@post
-            }
-            call.respond(HttpStatusCode.OK, createLoginResponse(device, users[0]))
-        } else
-            call.respond(
-                HttpStatusCode.BadRequest, ApiResponse(400, "No token was found in your request.")
-            )
+        val (user, device) = checkTokenDeviceUser(token, call)
+        if (device == null || user == null)
+            return@post
+        call.respond(HttpStatusCode.OK, createLoginResponse(device, user))
     }
 }
 
-public fun Route.deviceCreate() {
+fun Route.deviceCreate() {
     post("/device/create") {
         val form = call.receiveParameters()
         val info = form["info"]
@@ -76,7 +59,7 @@ public fun Route.deviceCreate() {
     }
 }
 
-public fun Route.deviceFirstAuth() {
+fun Route.deviceFirstAuth() {
     post("/device/firstAuth") {
         val form = call.receiveParameters()
         val token = form["token"]

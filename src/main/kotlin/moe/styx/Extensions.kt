@@ -11,3 +11,7 @@ suspend inline fun ApplicationCall.respondStyx(status: HttpStatusCode, message: 
     response.status(status)
     respond(ApiResponse(status.value, message))
 }
+
+fun HttpStatusCode.makeResponse(message: String, silent: Boolean = false): ApiResponse {
+    return ApiResponse(this.value, message, silent)
+}
