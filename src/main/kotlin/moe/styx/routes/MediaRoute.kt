@@ -79,10 +79,7 @@ fun Route.favourites() {
         val form = call.receiveParameters()
         val token = form["token"]
 
-        val (user, device) = checkTokenDeviceUser(token, call)
-        if (device == null || user == null)
-            return@post
-
+        val user = checkTokenUser(token, call) ?: return@post
         val media = checkMedia(call.parameters["media"], call) ?: return@post
 
         if (Favourite(media.GUID, user.GUID, Clock.System.now().epochSeconds).save()) {
@@ -96,10 +93,7 @@ fun Route.favourites() {
         val form = call.receiveParameters()
         val token = form["token"]
 
-        val (user, device) = checkTokenDeviceUser(token, call)
-        if (device == null || user == null)
-            return@post
-
+        val user = checkTokenUser(token, call) ?: return@post
         val media = checkMedia(call.parameters["media"], call) ?: return@post
 
         if (Favourite(media.GUID, user.GUID, 0L).delete()) {
