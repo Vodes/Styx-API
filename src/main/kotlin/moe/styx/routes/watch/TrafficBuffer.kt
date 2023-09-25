@@ -4,9 +4,9 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import moe.styx.Device
 import moe.styx.database.openStatement
 import moe.styx.toBoolean
+import moe.styx.types.Device
 
 /* TODO: Make a class like DeviceTrafficBuffer containing a Device, a bytes Long
     and a "last updated" variable (just current unix time)

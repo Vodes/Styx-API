@@ -9,6 +9,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 import moe.styx.*
+import moe.styx.types.*
 import java.util.*
 import kotlin.random.Random
 
@@ -16,7 +17,7 @@ fun Route.deviceLogin() {
     post("/login") {
         val form = call.receiveParameters()
         val token = form["token"]
-        val (user, device) = checkTokenDeviceUser(token, call)
+        val (user, device) = checkTokenDeviceUser(token, call, login = true)
         if (device == null || user == null)
             return@post
         call.respond(HttpStatusCode.OK, createLoginResponse(device, user))

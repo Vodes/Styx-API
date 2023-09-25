@@ -18,9 +18,11 @@ application {
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
+    implementation("pw.vodes:styx-types:0.1")
     implementation("io.ktor:ktor-server-core-jvm:$ktor_version")
     implementation("io.ktor:ktor-server-resources:$ktor_version")
     implementation("io.ktor:ktor-server-compression-jvm:$ktor_version")
@@ -40,9 +42,6 @@ dependencies {
     implementation("org.apache.commons:commons-lang3:3.12.0")
     // https://mvnrepository.com/artifact/commons-io/commons-io
     implementation("commons-io:commons-io:2.11.0")
-
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.21")
-    testImplementation("io.ktor:ktor-server-tests-jvm:$ktor_version")
     implementation(kotlin("stdlib-jdk8"))
 }
 kotlin {

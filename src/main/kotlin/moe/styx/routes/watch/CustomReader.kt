@@ -9,7 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import moe.styx.Device
+import moe.styx.types.Device
 import java.io.File
 import java.io.IOException
 

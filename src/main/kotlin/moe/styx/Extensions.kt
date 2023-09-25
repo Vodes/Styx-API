@@ -3,6 +3,7 @@ package moe.styx
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
+import moe.styx.types.ApiResponse
 
 fun Boolean.toInt() = if (this) 1 else 0
 fun Int.toBoolean() = this > 0

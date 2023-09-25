@@ -5,6 +5,7 @@ import moe.styx.database.genericDelete
 import moe.styx.database.objectExists
 import moe.styx.database.objectExistsTwo
 import moe.styx.database.openStatement
+import moe.styx.types.*
 
 //TODO: Device SQL Extensions
 fun Device.save(newID: String? = null): Boolean {

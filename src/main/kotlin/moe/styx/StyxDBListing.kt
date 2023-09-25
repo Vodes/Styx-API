@@ -1,7 +1,7 @@
 package moe.styx
 
-import kotlinx.serialization.decodeFromString
 import moe.styx.database.openStatement
+import moe.styx.types.*
 
 fun getUnregisteredDevices(): MutableList<UnregisteredDevice> {
     val list = mutableListOf<UnregisteredDevice>()

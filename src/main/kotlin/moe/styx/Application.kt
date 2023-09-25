@@ -87,10 +87,7 @@ fun Application.module() {
     install(Compression) {
         gzip {
             priority = 1.0
-        }
-        deflate {
-            priority = 10.0
-            minimumSize(512) // condition
+
         }
     }
     install(DefaultHeaders) {

@@ -8,6 +8,7 @@ import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
 import kotlinx.serialization.SerializationException
 import moe.styx.*
+import moe.styx.types.*
 import java.io.File
 
 fun Route.mediaList() {
@@ -179,11 +180,11 @@ suspend fun checkTokenUser(token: String?, call: ApplicationCall): User? {
     return checkTokenDeviceUser(token, call).first
 }
 
-suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall): Pair<User?, Device?> {
+suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall, login: Boolean = false): Pair<User?, Device?> {
     if (token == null)
         call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.").also { return Pair(null, null) }
 
-    val device = getDevices().find { it.accessToken.equals(token, true) }
+    val device = getDevices().find { if (!login) it.accessToken.equals(token, true) else it.refreshToken.equals(token, true) }
     if (device == null)
         call.respondStyx(HttpStatusCode.Unauthorized, "No device has been found for this token.").also { return Pair(null, null) }
 

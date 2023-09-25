@@ -4,8 +4,8 @@ import io.ktor.http.content.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import moe.styx.Device
 import moe.styx.routes.watch.CustomLocalFileContent
+import moe.styx.types.Device
 import java.io.File
 
 fun Route.watch() {
