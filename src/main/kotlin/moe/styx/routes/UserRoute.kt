@@ -8,7 +8,10 @@ import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
-import moe.styx.*
+import moe.styx.db.getDevices
+import moe.styx.db.getUsers
+import moe.styx.db.save
+import moe.styx.getDBClient
 import moe.styx.types.*
 import java.util.*
 import kotlin.random.Random
@@ -50,7 +53,7 @@ fun Route.deviceCreate() {
             Clock.System.now().epochSeconds + 70, Random.nextInt(100000, 999999)
         )
 
-        if (unregisteredDevice.save()) {
+        if (getDBClient().executeGet { save(unregisteredDevice) }) {
             call.respond(HttpStatusCode.OK, CreationResponse(unregisteredDevice.GUID, unregisteredDevice.code, unregisteredDevice.codeExpiry))
         } else {
             call.respond(
@@ -72,7 +75,7 @@ fun Route.deviceFirstAuth() {
             return@post
         }
 
-        val device = getDevices().find { it.GUID.equals(token, true) }
+        val device = getDBClient().executeGet { getDevices(mapOf("GUID" to token)).firstOrNull() }
 
         if (device == null) {
             call.respond(
@@ -85,7 +88,7 @@ fun Route.deviceFirstAuth() {
                 )
                 return@post
             }
-            val users = getUsers().filter { it.GUID.equals(device.userID, true) }
+            val users = getDBClient().executeGet { getUsers(mapOf("GUID" to device.userID)) }
             if (users.isEmpty()) {
                 call.respond(
                     HttpStatusCode.Unauthorized, ApiResponse(401, "No user relating to this device has been found.")
@@ -106,9 +109,10 @@ private fun createLoginResponse(device: Device, user: User, first: Boolean = fal
     if (first)
         device.refreshToken = UUID.randomUUID().toString().uppercase()
 
-    device.save()
+    val dbClient = getDBClient()
+    dbClient.save(device)
     user.lastLogin = now.epochSeconds
-    user.save()
+    dbClient.executeAndClose { dbClient.save(user) }
 
     return LoginResponse(user.name, 0, device.accessToken, device.watchToken, device.tokenExpiry, if (first) device.refreshToken else null)
 }

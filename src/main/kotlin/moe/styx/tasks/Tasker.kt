@@ -8,22 +8,22 @@ import kotlinx.coroutines.launch
 fun startTasks() {
     val taskerJob = Job()
     val scope = CoroutineScope(taskerJob)
-    for (task in Tasks.values()) {
+    for (task in Tasks.entries) {
         scope.launch {
             if (task.initialWait > 0)
                 delay(task.initialWait * 1000L)
             var failed = 0
-            var lastfailed: Boolean
+            var lastFailed: Boolean
             while (true) {
                 try {
-                    lastfailed = false
+                    lastFailed = false
                     task.run()
                 } catch (ex: Exception) {
                     ex.printStackTrace()
                     failed++
-                    lastfailed = true
+                    lastFailed = true
                 }
-                if (!lastfailed || (lastfailed && failed < 3))
+                if (!lastFailed || (lastFailed && failed < 3))
                     delay(task.seconds * 1000L)
             }
         }

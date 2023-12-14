@@ -1,8 +1,9 @@
 package moe.styx.tasks
 
 import kotlinx.datetime.Clock
-import moe.styx.delete
-import moe.styx.getUnregisteredDevices
+import moe.styx.db.delete
+import moe.styx.db.getUnregisteredDevices
+import moe.styx.getDBClient
 import moe.styx.routes.watch.checkTrafficBuffers
 
 
@@ -16,11 +17,13 @@ enum class Tasks(val seconds: Int, val run: () -> Unit, val initialWait: Int = 0
 }
 
 private fun cleanUnregistered() {
+    val dbClient = getDBClient()
     val now = Clock.System.now().epochSeconds
-    val unregistered = getUnregisteredDevices()
+    val unregistered = dbClient.getUnregisteredDevices()
 
     for (d in unregistered) {
         if (d.codeExpiry < now)
-            d.delete()
+            dbClient.delete(d)
     }
+    dbClient.closeConnection()
 }

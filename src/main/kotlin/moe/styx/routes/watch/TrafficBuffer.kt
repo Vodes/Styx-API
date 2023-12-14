@@ -4,9 +4,9 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import moe.styx.database.openStatement
-import moe.styx.toBoolean
+import moe.styx.getDBClient
 import moe.styx.types.Device
+import moe.styx.types.toBoolean
 
 /* TODO: Make a class like DeviceTrafficBuffer containing a Device, a bytes Long
     and a "last updated" variable (just current unix time)
@@ -49,35 +49,32 @@ fun checkTrafficBuffers() {
 }
 
 private fun exists(buffer: DeviceTrafficBuffer, now: LocalDateTime): Boolean {
-    val (con, stat) = openStatement("SELECT * FROM DeviceTraffic WHERE deviceID=? AND year=? AND month=? AND day=?;")
-    stat.setString(1, buffer.device.GUID)
-    stat.setInt(2, now.year)
-    stat.setInt(3, now.monthNumber)
-    stat.setInt(4, now.dayOfMonth)
-    val results = stat.executeQuery()
-    val exists = results.next()
-    stat.close()
-    con.close()
-    return exists
+    return getDBClient().executeGet {
+        val stat = openStatement("SELECT * FROM DeviceTraffic WHERE deviceID=? AND year=? AND month=? AND day=?;") {
+            setString(1, buffer.device.GUID)
+            setInt(2, now.year)
+            setInt(3, now.monthNumber)
+            setInt(4, now.dayOfMonth)
+        }
+        stat.executeQuery().next().also { stat.close() }
+    }
 }
 
 fun syncTrafficToDB(buffer: DeviceTrafficBuffer): Boolean {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
     val update = exists(buffer, now)
-
     val query = if (update) "UPDATE DeviceTraffic SET bytes = bytes + ${buffer.bytes} WHERE deviceID=? AND year=? AND month=? AND day=?;" else
         "INSERT INTO DeviceTraffic (deviceID, year, month, day, bytes) VALUES(?, ?, ?, ?, ?);"
 
-    val (con, stat) = openStatement(query)
-    stat.setString(1, buffer.device.GUID)
-    stat.setInt(2, now.year)
-    stat.setInt(3, now.monthNumber)
-    stat.setInt(4, now.dayOfMonth)
-    if (!update)
-        stat.setLong(5, buffer.bytes)
-
-    val i = stat.executeUpdate()
-    stat.close()
-    con.close()
-    return i.toBoolean()
+    return getDBClient().executeGet {
+        val stat = openStatement(query) {
+            setString(1, buffer.device.GUID)
+            setInt(2, now.year)
+            setInt(3, now.monthNumber)
+            setInt(4, now.dayOfMonth)
+            if (!update)
+                setLong(5, buffer.bytes)
+        }
+        stat.executeUpdate().toBoolean().also { stat.close(); }
+    }
 }

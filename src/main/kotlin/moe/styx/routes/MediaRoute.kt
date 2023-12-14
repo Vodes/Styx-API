@@ -7,7 +7,10 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
 import kotlinx.serialization.SerializationException
-import moe.styx.*
+import moe.styx.changes
+import moe.styx.db.*
+import moe.styx.getDBClient
+import moe.styx.respondStyx
 import moe.styx.types.*
 import java.io.File
 
@@ -17,7 +20,7 @@ fun Route.mediaList() {
         val token = form["token"]
         if (!checkToken(token, call)) return@post
 
-        call.respond(HttpStatusCode.OK, getMedia())
+        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getMedia() })
     }
 }
 
@@ -26,8 +29,8 @@ fun Route.mediaEntries() {
         val form = call.receiveParameters()
         val token = form["token"]
         if (!checkToken(token, call)) return@post
-
-        call.respond(HttpStatusCode.OK, getMediaEntries())
+        
+        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getEntries() })
     }
 }
 
@@ -37,7 +40,7 @@ fun Route.images() {
         val token = form["token"]
         if (!checkToken(token, call)) return@post
 
-        call.respond(HttpStatusCode.OK, getAllImages())
+        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getImages() })
     }
 }
 
@@ -47,7 +50,7 @@ fun Route.schedules() {
         val token = form["token"]
         if (!checkToken(token, call)) return@post
 
-        call.respond(HttpStatusCode.OK, getAllMediaSchedules())
+        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getSchedules() })
     }
 }
 
@@ -64,7 +67,7 @@ fun Route.categories() {
         val token = form["token"]
         if (!checkToken(token, call)) return@post
 
-        call.respond(HttpStatusCode.OK, getCategories())
+        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getCategories() })
     }
 }
 
@@ -73,7 +76,7 @@ fun Route.favourites() {
         val form = call.receiveParameters()
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
-        call.respond(HttpStatusCode.OK, getFavourites().filter { it.userID.equals(user.GUID, true) })
+        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getFavourites() }.filter { it.userID.equals(user.GUID, true) })
     }
 
     post("/favourites/add/{media}") {
@@ -82,8 +85,8 @@ fun Route.favourites() {
 
         val user = checkTokenUser(token, call) ?: return@post
         val media = checkMedia(call.parameters["media"], call) ?: return@post
-
-        if (Favourite(media.GUID, user.GUID, Clock.System.now().epochSeconds).save()) {
+        val favourite = Favourite(media.GUID, user.GUID, Clock.System.now().epochSeconds)
+        if (getDBClient().executeGet { save(favourite) }) {
             call.respondStyx(HttpStatusCode.OK, "Favourite added.")
         } else {
             call.respondStyx(HttpStatusCode.InternalServerError, "Failed to add favourite.")
@@ -97,7 +100,7 @@ fun Route.favourites() {
         val user = checkTokenUser(token, call) ?: return@post
         val media = checkMedia(call.parameters["media"], call) ?: return@post
 
-        if (Favourite(media.GUID, user.GUID, 0L).delete()) {
+        if (getDBClient().executeGet { delete(Favourite(media.GUID, user.GUID, 0L)) }) {
             call.respondStyx(HttpStatusCode.OK, "Favourite deleted.")
         } else {
             call.respondStyx(HttpStatusCode.InternalServerError, "Failed to delete favourite.")
@@ -114,15 +117,16 @@ fun Route.favourites() {
             call.respondStyx(HttpStatusCode.BadRequest, "No content entry was found in the form.")
             return@post
         }
+        val dbClient = getDBClient()
         try {
             val favourites: List<Favourite> = json.decodeFromString(content)
-            val current = getFavourites().filter { it.userID.equals(user.GUID, true) }
-            current.forEach { it.delete() }
+            val current = dbClient.getFavourites().filter { it.userID.equals(user.GUID, true) }
+            current.forEach { dbClient.delete(it) }
             favourites.forEach {
                 it.userID = user.GUID
                 if (it.added <= 0)
                     it.added = Clock.System.now().epochSeconds
-                it.save()
+                dbClient.save(it)
             }
         } catch (decodeEx: SerializationException) {
             call.respondStyx(HttpStatusCode.BadRequest, "Invalid json content for this endpoint was received.")
@@ -130,6 +134,8 @@ fun Route.favourites() {
         } catch (ex: Exception) {
             call.respondStyx(HttpStatusCode.InternalServerError, "An Error occurred on the server side.\nPlease contact an admin.")
             ex.printStackTrace()
+        } finally {
+            dbClient.closeConnection()
         }
     }
 }
@@ -139,7 +145,7 @@ suspend fun checkMedia(id: String?, call: ApplicationCall): Media? {
         call.respondStyx(HttpStatusCode.BadRequest, "No media ID was found in your request.")
         return null
     }
-    val media = getMedia().find { it.GUID.equals(call.parameters["media"], true) }
+    val media = getDBClient().executeGet { getMedia(mapOf("GUID" to id)).firstOrNull() }
 
     if (media == null)
         call.respondStyx(HttpStatusCode.NotFound, "No media with that ID was found.")
@@ -152,7 +158,7 @@ suspend fun checkMediaEntry(id: String?, call: ApplicationCall): MediaEntry? {
         call.respondStyx(HttpStatusCode.BadRequest, "No entry ID was found in your request.")
         return null
     }
-    val entry = getMediaEntries().find { it.GUID.equals(call.parameters["media"], true) }
+    val entry = getDBClient().executeGet { getEntries(mapOf("GUID" to id)).firstOrNull() }
 
     if (entry == null)
         call.respondStyx(HttpStatusCode.NotFound, "No entry with that ID was found.")
@@ -183,14 +189,15 @@ suspend fun checkTokenUser(token: String?, call: ApplicationCall): User? {
 suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall, login: Boolean = false): Pair<User?, Device?> {
     if (token == null)
         call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.").also { return Pair(null, null) }
-
-    val device = getDevices().find { if (!login) it.accessToken.equals(token, true) else it.refreshToken.equals(token, true) }
+    val dbClient = getDBClient()
+    val device = dbClient.getDevices().find { if (!login) it.accessToken.equals(token, true) else it.refreshToken.equals(token, true) }
     if (device == null)
         call.respondStyx(HttpStatusCode.Unauthorized, "No device has been found for this token.").also { return Pair(null, null) }
 
-    val user = getUsers().find { it.GUID.equals(device!!.userID, true) }
+    val user = dbClient.getUsers().find { it.GUID.equals(device!!.userID, true) }
     if (user == null)
         call.respondStyx(HttpStatusCode.Unauthorized, "No user relating to this device has been found.")
 
+    dbClient.closeConnection()
     return Pair(user, device)
 }
