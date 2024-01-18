@@ -22,7 +22,8 @@ repositories {
 }
 
 dependencies {
-    implementation("moe.styx:styx-db:0.2")
+    implementation(kotlin("stdlib-jdk8"))
+    implementation("moe.styx:styx-db:0.3")
     // Server
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-resources:$ktorVersion")
@@ -46,13 +47,8 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     implementation("io.ktor:ktor-client-encoding:$ktorVersion")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
-    implementation("com.mysql:mysql-connector-j:8.0.33")
-    // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
-    implementation("org.apache.commons:commons-lang3:3.12.0")
-    // https://mvnrepository.com/artifact/commons-io/commons-io
-    implementation("commons-io:commons-io:2.11.0")
-    implementation(kotlin("stdlib-jdk8"))
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
+    implementation("com.mysql:mysql-connector-j:8.2.0")
 }
 kotlin {
     jvmToolchain(17)
