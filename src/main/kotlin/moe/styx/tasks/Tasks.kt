@@ -17,13 +17,9 @@ enum class Tasks(val seconds: Int, val run: () -> Unit, val initialWait: Int = 0
 }
 
 private fun cleanUnregistered() {
-    val dbClient = getDBClient()
-    val now = Clock.System.now().epochSeconds
-    val unregistered = dbClient.getUnregisteredDevices()
-
-    for (d in unregistered) {
-        if (d.codeExpiry < now)
-            dbClient.delete(d)
+    getDBClient().executeAndClose {
+        val now = Clock.System.now().epochSeconds
+        val unregistered = getUnregisteredDevices()
+        unregistered.filter { it.codeExpiry < now }.forEach { delete(it) }
     }
-    dbClient.closeConnection()
 }

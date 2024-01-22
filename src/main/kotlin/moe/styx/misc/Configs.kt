@@ -8,6 +8,7 @@ data class Config(
     val mainSiteBaseURL: String = "https://beta.styx.moe",
     val discordClientID: String = "",
     val discordClientSecret: String = "",
+    val nginxWatchLogFile: String = "",
     val dbIP: String,
     val dbUser: String,
     val dbPass: String

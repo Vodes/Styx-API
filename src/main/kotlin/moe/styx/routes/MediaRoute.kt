@@ -29,7 +29,7 @@ fun Route.mediaEntries() {
         val form = call.receiveParameters()
         val token = form["token"]
         if (!checkToken(token, call)) return@post
-        
+
         call.respond(HttpStatusCode.OK, getDBClient().executeGet { getEntries() })
     }
 }
@@ -164,12 +164,7 @@ suspend fun checkMediaEntry(id: String?, call: ApplicationCall): MediaEntry? {
         call.respondStyx(HttpStatusCode.NotFound, "No entry with that ID was found.")
 
     if (entry != null) {
-        val entryFile = File(
-            if (System.getProperty("os.name").contains("win", true))
-                "E:\\Encoding Stuff\\# Doing\\KKS\\premux\\Kekkai Sensen - S01E02 (premux) [BC46BD78].mkv"
-            else
-                entry.filePath
-        )
+        val entryFile = File(entry.filePath)
         if (!entryFile.exists()) {
             call.respondStyx(HttpStatusCode.InternalServerError, "The file for this media entry was not found.")
             return null
@@ -186,13 +181,24 @@ suspend fun checkTokenUser(token: String?, call: ApplicationCall): User? {
     return checkTokenDeviceUser(token, call).first
 }
 
-suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall, login: Boolean = false): Pair<User?, Device?> {
+suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall, login: Boolean = false, watch: Boolean = false): Pair<User?, Device?> {
     if (token == null)
         call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.").also { return Pair(null, null) }
     val dbClient = getDBClient()
-    val device = dbClient.getDevices().find { if (!login) it.accessToken.equals(token, true) else it.refreshToken.equals(token, true) }
+    val device = dbClient.getDevices().find {
+        if (!login)
+            if (watch)
+                it.watchToken.equals(token, true)
+            else
+                it.accessToken.equals(token, true)
+        else
+            it.refreshToken.equals(token, true)
+    }
     if (device == null)
-        call.respondStyx(HttpStatusCode.Unauthorized, "No device has been found for this token.").also { return Pair(null, null) }
+        call.respondStyx(HttpStatusCode.Unauthorized, "No device has been found for this token.").also {
+            dbClient.closeConnection()
+            return Pair(null, null)
+        }
 
     val user = dbClient.getUsers().find { it.GUID.equals(device!!.userID, true) }
     if (user == null)

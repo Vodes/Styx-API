@@ -18,12 +18,13 @@ fun startTasks() {
                 try {
                     lastFailed = false
                     task.run()
+                    failed = 0
                 } catch (ex: Exception) {
                     ex.printStackTrace()
                     failed++
                     lastFailed = true
                 }
-                if (!lastFailed || (lastFailed && failed < 3))
+                if (!lastFailed) /* || (lastFailed && failed > 3))*/
                     delay(task.seconds * 1000L)
             }
         }

@@ -13,13 +13,13 @@ fun Route.watch() {
         val params = call.request.queryParameters
         val token = params["token"]
 
-        val (user, device) = checkTokenDeviceUser(token, call)
+        val (user, device) = checkTokenDeviceUser(token, call, watch = true)
         if (device == null || user == null)
             return@get
 
         val entry = checkMediaEntry(call.parameters["media"], call) ?: return@get
-
-        call.customRespondFile(File(entry.filePath), device)
+        call.respondFile(File(entry.filePath))
+        //call.customRespondFile(File(entry.filePath), device)
     }
 }
 
