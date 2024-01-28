@@ -84,51 +84,6 @@ fun main() {
     embeddedServer(Netty, port = 8081, host = "0.0.0.0", module = Application::module)
         .start(wait = true)
 }
-// TODO: WIP, Currently not doing what I want it to do
-//val trafficPlugin = createApplicationPlugin("TrafficLogger") {
-//    val loggerJob = Job()
-//    val loggerScope = CoroutineScope(loggerJob)
-//
-//    on(ResponseSent) {
-//        val test = it.response.headers["Content-Length"]
-//        println("Length Header: $test")
-//    }
-//
-//    onCallRespond { call, _ ->
-//        if (!call.request.uri.startsWith("/watch", true))
-//            return@onCallRespond
-//
-//        val params = call.request.queryParameters
-//        val token = params["token"]
-//
-//        val (user, device) = checkTokenDeviceUser(token, call, watch = true)
-//        if (device == null || user == null)
-//            return@onCallRespond
-//
-//        transformBody { body ->
-//            when (body) {
-//                is OutgoingContent.ReadChannelContent -> {
-//                    loggerScope.writer {
-//                        println("Test")
-//                        val test = runCatching {
-//                            val size = body.readFrom().copyTo(channel)
-//                            println("Bytes sent: $size")
-//                            return@runCatching size
-//                        }.onFailure {
-//                            it.printStackTrace()
-//                        }
-//                        println(test)
-//                    }
-//                }
-//
-//                is OutgoingContent.ByteArrayContent -> {
-//                    println("Bytes sent: ${body.bytes().size}")
-//                }
-//            }
-//            body
-//        }
-//    }
-//}
 
 fun Application.module() {
     install(Compression) {

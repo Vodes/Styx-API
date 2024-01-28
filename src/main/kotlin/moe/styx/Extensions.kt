@@ -10,9 +10,9 @@ import io.ktor.server.response.*
 import moe.styx.types.ApiResponse
 import moe.styx.types.json
 
-suspend inline fun ApplicationCall.respondStyx(status: HttpStatusCode, message: String) {
+suspend inline fun ApplicationCall.respondStyx(status: HttpStatusCode, message: String, silent: Boolean = false) {
     response.status(status)
-    respond(ApiResponse(status.value, message))
+    respond(ApiResponse(status.value, message, silent))
 }
 
 fun HttpStatusCode.makeResponse(message: String, silent: Boolean = false): ApiResponse {

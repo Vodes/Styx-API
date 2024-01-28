@@ -158,12 +158,14 @@ suspend fun checkMediaEntry(id: String?, call: ApplicationCall): MediaEntry? {
         call.respondStyx(HttpStatusCode.BadRequest, "No entry ID was found in your request.")
         return null
     }
-    val entry = getDBClient().executeGet { getEntries(mapOf("GUID" to id)).firstOrNull() }
+    var entry = getDBClient().executeGet { getEntries(mapOf("GUID" to id)).firstOrNull() }
 
     if (entry == null)
         call.respondStyx(HttpStatusCode.NotFound, "No entry with that ID was found.")
 
     if (entry != null) {
+        if (System.getProperty("os.name").contains("win", true))
+            entry = entry.copy(filePath = "D:\\Compings\\Jujutsu Kaisen 0 (2021).mkv")
         val entryFile = File(entry.filePath)
         if (!entryFile.exists()) {
             call.respondStyx(HttpStatusCode.InternalServerError, "The file for this media entry was not found.")
