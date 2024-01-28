@@ -9,7 +9,7 @@ import moe.styx.config
 import moe.styx.misc.DiscordAPI
 
 fun Route.discordAuth() {
-    get("/auth") {
+    get("/discord/auth") {
         val params = call.request.queryParameters
         val code = params["code"]
         if (code.isNullOrBlank()) {
@@ -18,7 +18,7 @@ fun Route.discordAuth() {
         }
         DiscordAPI.handleIncomingCode(code, call)
     }
-    get("/logout") {
+    get("/discord/logout") {
         call.response.cookies.append(
             Cookie(
                 "access_token",
