@@ -117,6 +117,8 @@ fun Application.module() {
         favourites()
         watch()
 
+        heartbeat()
+
         changes()
     }
 }
