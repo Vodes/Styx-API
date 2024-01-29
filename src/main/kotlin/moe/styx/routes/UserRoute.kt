@@ -101,6 +101,14 @@ private fun createLoginResponse(device: Device, user: User, first: Boolean = fal
     user.lastLogin = now.epochSeconds
     dbClient.executeAndClose { dbClient.save(user) }
 
-    return LoginResponse(user.name, 0, device.accessToken, device.watchToken, device.tokenExpiry, if (first) device.refreshToken else null)
+    return LoginResponse(
+        user.name,
+        user.GUID,
+        user.permissions,
+        device.accessToken,
+        device.watchToken,
+        device.tokenExpiry,
+        if (first) device.refreshToken else null
+    )
 }
 

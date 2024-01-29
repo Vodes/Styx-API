@@ -82,8 +82,8 @@ fun Route.favourites() {
         val token = form["token"]
 
         val user = checkTokenUser(token, call) ?: return@post
-        val fav = call.receiveGenericContent<Favourite>() ?: return@post
-        
+        val fav = call.receiveGenericContent<Favourite>(form) ?: return@post
+
         if (getDBClient().executeGet { save(fav.copy(userID = user.GUID)) }) {
             call.respondStyx(HttpStatusCode.OK, "Favourite added.")
         } else {
@@ -96,7 +96,7 @@ fun Route.favourites() {
         val token = form["token"]
 
         val user = checkTokenUser(token, call) ?: return@post
-        val fav = call.receiveGenericContent<Favourite>() ?: return@post
+        val fav = call.receiveGenericContent<Favourite>(form) ?: return@post
 
         if (getDBClient().executeGet { delete(fav.copy(userID = user.GUID)) }) {
             call.respondStyx(HttpStatusCode.OK, "Favourite deleted.")
@@ -109,7 +109,7 @@ fun Route.favourites() {
         val form = call.receiveParameters()
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
-        val queuedChanges = call.receiveGenericContent<QueuedFavChanges>() ?: return@post
+        val queuedChanges = call.receiveGenericContent<QueuedFavChanges>(form) ?: return@post
         getDBClient().executeAndClose {
             queuedChanges.toAdd.forEach { save(it.copy(userID = user.GUID)) }
             queuedChanges.toRemove.forEach { delete(it.copy(userID = user.GUID)) }
@@ -130,7 +130,7 @@ fun Route.watched() {
         val form = call.receiveParameters()
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
-        val mediaWatched = call.receiveGenericContent<MediaWatched>() ?: return@post
+        val mediaWatched = call.receiveGenericContent<MediaWatched>(form) ?: return@post
         if (getDBClient().executeGet {
                 val existing = getMediaWatched(mapOf("entryID" to mediaWatched.entryID, "userID" to user.GUID)).firstOrNull()
                 val existingProgress = existing?.maxProgress ?: 0F
@@ -149,7 +149,7 @@ fun Route.watched() {
         val form = call.receiveParameters()
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
-        val mediaWatched = call.receiveGenericContent<MediaWatched>() ?: return@post
+        val mediaWatched = call.receiveGenericContent<MediaWatched>(form) ?: return@post
         if (getDBClient().executeGet { delete(mediaWatched.copy(userID = user.GUID)) })
             call.respond(HttpStatusCode.OK)
         else
@@ -159,7 +159,7 @@ fun Route.watched() {
         val form = call.receiveParameters()
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
-        val queuedChanges = call.receiveGenericContent<QueuedWatchedChanges>() ?: return@post
+        val queuedChanges = call.receiveGenericContent<QueuedWatchedChanges>(form) ?: return@post
         getDBClient().executeAndClose {
             queuedChanges.toUpdate.forEach {
                 var entry = it.copy(userID = user.GUID)
@@ -177,9 +177,9 @@ fun Route.watched() {
     }
 }
 
-suspend inline fun <reified T> ApplicationCall.receiveGenericContent(): T? {
+suspend inline fun <reified T> ApplicationCall.receiveGenericContent(form: Parameters): T? {
     return runCatching {
-        json.decodeFromString<T>(receiveParameters()["content"]!!)
+        json.decodeFromString<T>(form["content"]!!)
     }.onFailure {
         respondStyx(HttpStatusCode.BadRequest, "Could not find valid form entry for the '${T::class.simpleName}' type.")
     }.getOrNull()

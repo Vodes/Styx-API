@@ -18,8 +18,8 @@ fun Route.heartbeat() {
     post("/heartbeat") {
         val form = call.receiveParameters()
         val token = form["token"]
-        
-        val clientHeartbeat = call.receiveGenericContent<ClientHeartbeat>() ?: return@post
+
+        val clientHeartbeat = call.receiveGenericContent<ClientHeartbeat>(form) ?: return@post
         val (user, device) = checkTokenDeviceUser(token, call)
         if (user == null || device == null)
             return@post
