@@ -115,6 +115,7 @@ fun Application.module() {
         images()
         categories()
         favourites()
+        watched()
         watch()
 
         heartbeat()

@@ -5,8 +5,6 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.datetime.Clock
-import kotlinx.serialization.SerializationException
 import moe.styx.changes
 import moe.styx.db.*
 import moe.styx.getDBClient
@@ -76,31 +74,31 @@ fun Route.favourites() {
         val form = call.receiveParameters()
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
-        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getFavourites() }.filter { it.userID.equals(user.GUID, true) })
+        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getFavourites(mapOf("userID" to user.GUID)) })
     }
 
-    post("/favourites/add/{media}") {
+    post("/favourites/add") {
         val form = call.receiveParameters()
         val token = form["token"]
 
         val user = checkTokenUser(token, call) ?: return@post
-        val media = checkMedia(call.parameters["media"], call) ?: return@post
-        val favourite = Favourite(media.GUID, user.GUID, Clock.System.now().epochSeconds)
-        if (getDBClient().executeGet { save(favourite) }) {
+        val fav = call.receiveGenericContent<Favourite>() ?: return@post
+        
+        if (getDBClient().executeGet { save(fav.copy(userID = user.GUID)) }) {
             call.respondStyx(HttpStatusCode.OK, "Favourite added.")
         } else {
             call.respondStyx(HttpStatusCode.InternalServerError, "Failed to add favourite.")
         }
     }
 
-    post("/favourites/delete/{media}") {
+    post("/favourites/delete") {
         val form = call.receiveParameters()
         val token = form["token"]
 
         val user = checkTokenUser(token, call) ?: return@post
-        val media = checkMedia(call.parameters["media"], call) ?: return@post
+        val fav = call.receiveGenericContent<Favourite>() ?: return@post
 
-        if (getDBClient().executeGet { delete(Favourite(media.GUID, user.GUID, 0L)) }) {
+        if (getDBClient().executeGet { delete(fav.copy(userID = user.GUID)) }) {
             call.respondStyx(HttpStatusCode.OK, "Favourite deleted.")
         } else {
             call.respondStyx(HttpStatusCode.InternalServerError, "Failed to delete favourite.")
@@ -111,33 +109,80 @@ fun Route.favourites() {
         val form = call.receiveParameters()
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
-
-        val content = form["content"]
-        if (content.isNullOrBlank()) {
-            call.respondStyx(HttpStatusCode.BadRequest, "No content entry was found in the form.")
-            return@post
+        val queuedChanges = call.receiveGenericContent<QueuedFavChanges>() ?: return@post
+        getDBClient().executeAndClose {
+            queuedChanges.toAdd.forEach { save(it.copy(userID = user.GUID)) }
+            queuedChanges.toRemove.forEach { delete(it.copy(userID = user.GUID)) }
         }
-        val dbClient = getDBClient()
-        try {
-            val favourites: List<Favourite> = json.decodeFromString(content)
-            val current = dbClient.getFavourites().filter { it.userID.equals(user.GUID, true) }
-            current.forEach { dbClient.delete(it) }
-            favourites.forEach {
-                it.userID = user.GUID
-                if (it.added <= 0)
-                    it.added = Clock.System.now().epochSeconds
-                dbClient.save(it)
-            }
-        } catch (decodeEx: SerializationException) {
-            call.respondStyx(HttpStatusCode.BadRequest, "Invalid json content for this endpoint was received.")
-            decodeEx.printStackTrace()
-        } catch (ex: Exception) {
-            call.respondStyx(HttpStatusCode.InternalServerError, "An Error occurred on the server side.\nPlease contact an admin.")
-            ex.printStackTrace()
-        } finally {
-            dbClient.closeConnection()
-        }
+        call.respondStyx(HttpStatusCode.OK, "")
     }
+}
+
+fun Route.watched() {
+    post("/watched/list") {
+        val form = call.receiveParameters()
+        val token = form["token"]
+        val user = checkTokenUser(token, call) ?: return@post
+        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getMediaWatched(mapOf("userID" to user.GUID)) })
+    }
+
+    post("/watched/add") {
+        val form = call.receiveParameters()
+        val token = form["token"]
+        val user = checkTokenUser(token, call) ?: return@post
+        val mediaWatched = call.receiveGenericContent<MediaWatched>() ?: return@post
+        if (getDBClient().executeGet {
+                val existing = getMediaWatched(mapOf("entryID" to mediaWatched.entryID, "userID" to user.GUID)).firstOrNull()
+                val existingProgress = existing?.maxProgress ?: 0F
+                return@executeGet save(
+                    mediaWatched.copy(
+                        userID = user.GUID,
+                        maxProgress = if (existingProgress > mediaWatched.maxProgress) existingProgress else mediaWatched.maxProgress
+                    )
+                )
+            })
+            call.respond(HttpStatusCode.OK)
+        else
+            call.respondStyx(HttpStatusCode.InternalServerError, "Failed to save watched entry!")
+    }
+    post("/watched/delete") {
+        val form = call.receiveParameters()
+        val token = form["token"]
+        val user = checkTokenUser(token, call) ?: return@post
+        val mediaWatched = call.receiveGenericContent<MediaWatched>() ?: return@post
+        if (getDBClient().executeGet { delete(mediaWatched.copy(userID = user.GUID)) })
+            call.respond(HttpStatusCode.OK)
+        else
+            call.respondStyx(HttpStatusCode.InternalServerError, "Failed to delete watched entry!")
+    }
+    post("/watched/sync") {
+        val form = call.receiveParameters()
+        val token = form["token"]
+        val user = checkTokenUser(token, call) ?: return@post
+        val queuedChanges = call.receiveGenericContent<QueuedWatchedChanges>() ?: return@post
+        getDBClient().executeAndClose {
+            queuedChanges.toUpdate.forEach {
+                var entry = it.copy(userID = user.GUID)
+                val existing = getMediaWatched(mapOf("entryID" to entry.entryID, "userID" to entry.userID)).firstOrNull()
+                if (existing != null && existing.maxProgress > it.maxProgress)
+                    entry = it.copy(maxProgress = existing.maxProgress)
+                save(entry)
+            }
+            queuedChanges.toRemove.forEach {
+                val entry = it.copy(userID = user.GUID)
+                delete(entry)
+            }
+        }
+        call.respondStyx(HttpStatusCode.OK, "")
+    }
+}
+
+suspend inline fun <reified T> ApplicationCall.receiveGenericContent(): T? {
+    return runCatching {
+        json.decodeFromString<T>(receiveParameters()["content"]!!)
+    }.onFailure {
+        respondStyx(HttpStatusCode.BadRequest, "Could not find valid form entry for the '${T::class.simpleName}' type.")
+    }.getOrNull()
 }
 
 suspend fun checkMedia(id: String?, call: ApplicationCall): Media? {
