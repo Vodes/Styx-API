@@ -12,6 +12,7 @@ import moe.styx.db.getDevices
 import moe.styx.db.getUsers
 import moe.styx.db.save
 import moe.styx.getDBClient
+import moe.styx.respondStyx
 import moe.styx.types.*
 import java.util.*
 import kotlin.random.Random
@@ -36,15 +37,11 @@ fun Route.deviceCreate() {
             try {
                 deviceInfo = json.decodeFromString<DeviceInfo>(info)
             } catch (ex: Exception) {
-                call.respond(
-                    HttpStatusCode.BadRequest, ApiResponse(400, "Invalid DeviceInfo object has been sent!")
-                )
+                call.respondStyx(HttpStatusCode.BadRequest, "Invalid DeviceInfo object has been sent!")
                 return@post
             }
         } else {
-            call.respond(
-                HttpStatusCode.BadRequest, ApiResponse(400, "Please include a device identifying field.")
-            )
+            call.respondStyx(HttpStatusCode.BadRequest, "Please include a device identifying field.")
             return@post
         }
 
@@ -56,9 +53,7 @@ fun Route.deviceCreate() {
         if (getDBClient().executeGet { save(unregisteredDevice) }) {
             call.respond(HttpStatusCode.OK, CreationResponse(unregisteredDevice.GUID, unregisteredDevice.code, unregisteredDevice.codeExpiry))
         } else {
-            call.respond(
-                HttpStatusCode.InternalServerError, ApiResponse(500, "Something went wrong trying to connect to the database!")
-            )
+            call.respondStyx(HttpStatusCode.InternalServerError, "Something went wrong trying to connect to the database!")
         }
     }
 }
@@ -69,30 +64,22 @@ fun Route.deviceFirstAuth() {
         val token = form["token"]
 
         if (token.isNullOrBlank()) {
-            call.respond(
-                HttpStatusCode.BadRequest, ApiResponse(400, "No token was found in your request.")
-            )
+            call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.")
             return@post
         }
 
         val device = getDBClient().executeGet { getDevices(mapOf("GUID" to token)).firstOrNull() }
 
         if (device == null) {
-            call.respond(
-                HttpStatusCode.Unauthorized, ApiResponse(401, "No device found for this token.", true)
-            )
+            call.respondStyx(HttpStatusCode.Unauthorized, "No device found for this token.")
         } else {
             if (device.refreshToken.isNotBlank()) {
-                call.respond(
-                    HttpStatusCode.Forbidden, ApiResponse(403, "This device has already been registered.")
-                )
+                call.respondStyx(HttpStatusCode.Forbidden, "This device has already been registered.")
                 return@post
             }
             val users = getDBClient().executeGet { getUsers(mapOf("GUID" to device.userID)) }
             if (users.isEmpty()) {
-                call.respond(
-                    HttpStatusCode.Unauthorized, ApiResponse(401, "No user relating to this device has been found.")
-                )
+                call.respondStyx(HttpStatusCode.Unauthorized, "No user relating to this device has been found.")
                 return@post
             }
             call.respond(HttpStatusCode.OK, createLoginResponse(device, users[0], true))

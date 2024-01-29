@@ -18,11 +18,8 @@ fun Route.heartbeat() {
     post("/heartbeat") {
         val form = call.receiveParameters()
         val token = form["token"]
-        val clientHeartbeat = runCatching { json.decodeFromString<ClientHeartbeat>(form["content"]!!) }.getOrNull()
-        if (clientHeartbeat == null) {
-            call.respondStyx(HttpStatusCode.BadRequest, "No heartbeat was found in your request.")
-            return@post
-        }
+        
+        val clientHeartbeat = call.receiveGenericContent<ClientHeartbeat>() ?: return@post
         val (user, device) = checkTokenDeviceUser(token, call)
         if (user == null || device == null)
             return@post
