@@ -141,7 +141,7 @@ fun Route.watched() {
                     )
                 )
             })
-            call.respond(HttpStatusCode.OK)
+            call.respondStyx(HttpStatusCode.OK, "")
         else
             call.respondStyx(HttpStatusCode.InternalServerError, "Failed to save watched entry!")
     }
@@ -151,7 +151,7 @@ fun Route.watched() {
         val user = checkTokenUser(token, call) ?: return@post
         val mediaWatched = call.receiveGenericContent<MediaWatched>(form) ?: return@post
         if (getDBClient().executeGet { delete(mediaWatched.copy(userID = user.GUID)) })
-            call.respond(HttpStatusCode.OK)
+            call.respondStyx(HttpStatusCode.OK, "")
         else
             call.respondStyx(HttpStatusCode.InternalServerError, "Failed to delete watched entry!")
     }
