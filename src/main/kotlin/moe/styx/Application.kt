@@ -109,11 +109,7 @@ fun Application.module() {
         deviceFirstAuth()
         discordAuth()
 
-        mediaList()
-        mediaEntries()
-        schedules()
-        images()
-        categories()
+        media()
         favourites()
         watched()
         watch()

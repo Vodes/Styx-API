@@ -12,7 +12,7 @@ import moe.styx.respondStyx
 import moe.styx.types.*
 import java.io.File
 
-fun Route.mediaList() {
+fun Route.media() {
     post("/media/list") {
         val form = call.receiveParameters()
         val token = form["token"]
@@ -20,9 +20,7 @@ fun Route.mediaList() {
 
         call.respond(HttpStatusCode.OK, getDBClient().executeGet { getMedia() })
     }
-}
 
-fun Route.mediaEntries() {
     post("/media/entries") {
         val form = call.receiveParameters()
         val token = form["token"]
@@ -30,9 +28,15 @@ fun Route.mediaEntries() {
 
         call.respond(HttpStatusCode.OK, getDBClient().executeGet { getEntries() })
     }
-}
 
-fun Route.images() {
+    post("/media/info") {
+        val form = call.receiveParameters()
+        val token = form["token"]
+        if (!checkToken(token, call)) return@post
+
+        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getMediaInfo() })
+    }
+
     post("/media/images") {
         val form = call.receiveParameters()
         val token = form["token"]
@@ -40,9 +44,7 @@ fun Route.images() {
 
         call.respond(HttpStatusCode.OK, getDBClient().executeGet { getImages() })
     }
-}
 
-fun Route.schedules() {
     post("/media/schedules") {
         val form = call.receiveParameters()
         val token = form["token"]
@@ -50,22 +52,20 @@ fun Route.schedules() {
 
         call.respond(HttpStatusCode.OK, getDBClient().executeGet { getSchedules() })
     }
-}
 
-
-fun Route.changes() {
-    get("/changes") {
-        call.respond(HttpStatusCode.OK, changes)
-    }
-}
-
-fun Route.categories() {
     post("/media/categories") {
         val form = call.receiveParameters()
         val token = form["token"]
         if (!checkToken(token, call)) return@post
 
         call.respond(HttpStatusCode.OK, getDBClient().executeGet { getCategories() })
+    }
+}
+
+
+fun Route.changes() {
+    get("/changes") {
+        call.respond(HttpStatusCode.OK, changes)
     }
 }
 
@@ -229,7 +229,7 @@ suspend fun checkTokenUser(token: String?, call: ApplicationCall): User? {
 }
 
 suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall, login: Boolean = false, watch: Boolean = false): Pair<User?, Device?> {
-    if (token == null)
+    if (token.isNullOrBlank())
         call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.").also { return Pair(null, null) }
     val dbClient = getDBClient()
     val device = dbClient.getDevices().find {
