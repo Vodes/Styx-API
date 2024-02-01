@@ -34,7 +34,7 @@ object DiscordAPI {
             append("grant_type", "authorization_code")
             append("client_id", config.discordClientID)
             append("client_secret", config.discordClientSecret)
-            append("redirect_uri", "${config.baseURL}/auth")
+            append("redirect_uri", "${config.baseURL}/discord/auth")
             append("code", code)
         }) {
             method = HttpMethod.Post
@@ -62,7 +62,7 @@ object DiscordAPI {
     fun buildAuthURL(): String {
         val builder = URLBuilder("https://discord.com/api/oauth2/authorize")
         builder.parameters.append("client_id", config.discordClientID)
-        builder.parameters.append("redirect_uri", "${config.baseURL}/auth")
+        builder.parameters.append("redirect_uri", "${config.baseURL}/discord/auth")
         builder.parameters.append("response_type", "code")
         builder.parameters.append("scope", "identify guilds")
         return builder.buildString()
