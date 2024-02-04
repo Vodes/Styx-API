@@ -30,12 +30,10 @@ fun startParsing() {
             val lines = file.readLines()
             getDBClient().executeAndClose {
                 for (line in lines.filter { !parsedLines.contains(it) }) {
-                    println(line)
                     parsedLines.add(line)
                     val match = watchTrafficRegex.find(line) ?: continue
                     val device = match.groups["token"]?.value?.let { getDevices(mapOf("watchToken" to it)).firstOrNull() } ?: continue
                     val traffic = match.groups["bytes"]?.value?.toLongOrNull() ?: continue
-                    println("Added traffic of $traffic bytes.")
                     addTraffic(device, traffic)
                 }
             }

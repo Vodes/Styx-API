@@ -25,8 +25,9 @@ import kotlin.system.exitProcess
 
 var config: Config = Config(dbIP = "", dbPass = "", dbUser = "")
 var changes: Changes = Changes(0, 0)
+var changesUpdated = 0L
 
-private var changesFile: File = File("")
+var changesFile: File = File("")
 private var configFile: File = File("")
 
 fun loadDBConfig() {
@@ -35,14 +36,14 @@ fun loadDBConfig() {
         val apiDir = File(styxDir, "API-v2")
         apiDir.mkdirs()
         configFile = File(apiDir, "config.json")
-        changesFile = File(apiDir, "changes.json")
+        changesFile = File(styxDir, "changes.json")
     } else {
         val configDir = File(System.getProperty("user.home"), ".config")
         val styxDir = File(configDir, "Styx")
         val apiDir = File(styxDir, "API-v2")
         apiDir.mkdirs()
         configFile = File(apiDir, "config.json")
-        changesFile = File(apiDir, "changes.json")
+        changesFile = File(styxDir, "changes.json")
     }
     if (!configFile.exists()) {
         configFile.writeText(Json(json) { prettyPrint = true }.encodeToString(config))
@@ -56,6 +57,7 @@ fun loadDBConfig() {
 
     config = json.decodeFromString(configFile.readText())
     changes = json.decodeFromString(changesFile.readText())
+    changesUpdated = Clock.System.now().epochSeconds
 }
 
 fun updateChanges(media: Long, entry: Long) {
