@@ -230,7 +230,7 @@ suspend fun checkTokenUser(token: String?, call: ApplicationCall): User? {
 
 suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall, login: Boolean = false, watch: Boolean = false): Pair<User?, Device?> {
     if (token.isNullOrBlank())
-        call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.").also { return Pair(null, null) }
+        call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.").also { return null to null }
     val dbClient = getDBClient()
     val device = dbClient.getDevices().find {
         if (!login)
@@ -244,13 +244,18 @@ suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall, login: B
     if (device == null)
         call.respondStyx(HttpStatusCode.Unauthorized, "No device has been found for this token.").also {
             dbClient.closeConnection()
-            return Pair(null, null)
+            return null to null
         }
 
     val user = dbClient.getUsers().find { it.GUID.equals(device!!.userID, true) }
     if (user == null)
         call.respondStyx(HttpStatusCode.Unauthorized, "No user relating to this device has been found.")
 
+    if ((user?.permissions ?: 0) < 0) {
+        call.respondStyx(HttpStatusCode.Forbidden, "You are banned.")
+        return null to null
+    }
+
     dbClient.closeConnection()
-    return Pair(user, device)
+    return user to device
 }
