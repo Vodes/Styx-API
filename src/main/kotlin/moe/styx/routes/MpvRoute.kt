@@ -15,7 +15,7 @@ fun Route.mpvRoute() {
             call.respond(HttpStatusCode.NotFound)
             return@get
         }
-        call.respond(HttpStatusCode.OK, list.last())
+        call.respond(HttpStatusCode.OK, list.last().name)
     }
 
     get("/mpv/download") {
