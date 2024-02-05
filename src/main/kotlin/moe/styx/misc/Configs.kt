@@ -11,7 +11,8 @@ data class Config(
     val nginxWatchLogFile: String = "",
     val dbIP: String,
     val dbUser: String,
-    val dbPass: String
+    val dbPass: String,
+    val mpvFolder: String = ""
 )
 
 @Serializable

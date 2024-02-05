@@ -119,5 +119,6 @@ fun Application.module() {
         heartbeat()
 
         changes()
+        mpvRoute()
     }
 }
