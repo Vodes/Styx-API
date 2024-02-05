@@ -2,12 +2,15 @@ package moe.styx.routes
 
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
+import kotlinx.serialization.encodeToString
+import moe.styx.IPDeviceEntry
 import moe.styx.db.*
 import moe.styx.getDBClient
 import moe.styx.respondStyx
@@ -29,9 +32,24 @@ fun Route.deviceLogin() {
             call.respondStyx(HttpStatusCode.FailedDependency, "Invalid app secret.")
             return@post
         }
+        getDBClient().executeAndClose {
+            var ip = call.request.origin.remoteAddress
+            if (call.request.headers.contains("CF-Connecting-IP")) {
+                ip = call.request.headers["CF-Connecting-IP"] ?: ""
+            }
+            save(
+                Log(
+                    user.GUID,
+                    device.GUID,
+                    LogType.LOGIN,
+                    json.encodeToString(IPDeviceEntry(ip, deviceInfo.copy(appSecret = ""))),
+                    Clock.System.now().epochSeconds
+                )
+            )
+        }
         call.respond(HttpStatusCode.OK, createLoginResponse(device, user))
     }
-    
+
     post("/logout") {
         val form = call.receiveParameters()
         val token = form["token"]
@@ -43,6 +61,12 @@ fun Route.deviceLogin() {
             val active = getActiveUsers().find { it.deviceID eqI device.GUID }
             if (active != null)
                 delete(active)
+
+            var ip = call.request.origin.remoteAddress
+            if (call.request.headers.contains("CF-Connecting-IP")) {
+                ip = call.request.headers["CF-Connecting-IP"] ?: ""
+            }
+            save(Log(user.GUID, device.GUID, LogType.LOGOUT, "IP: $ip", Clock.System.now().epochSeconds))
         }
         call.respond(HttpStatusCode.OK)
     }
@@ -51,22 +75,16 @@ fun Route.deviceLogin() {
 fun Route.deviceCreate() {
     post("/device/create") {
         val form = call.receiveParameters()
-        val info = form["info"]
-        val deviceInfo: DeviceInfo
-        if (!info.isNullOrBlank()) {
-            try {
-                deviceInfo = json.decodeFromString<DeviceInfo>(info)
-            } catch (ex: Exception) {
-                call.respondStyx(HttpStatusCode.BadRequest, "Invalid DeviceInfo object has been sent!")
-                return@post
-            }
-        } else {
-            call.respondStyx(HttpStatusCode.BadRequest, "Please include a device identifying field.")
+        val deviceInfo = call.receiveGenericContent<DeviceInfo>(form, "info") ?: return@post
+
+        val secret = secretsFile.readLines().filter { it.trim().isNotBlank() }.find { it eqI deviceInfo.appSecret }
+        if (secret == null) {
+            call.respondStyx(HttpStatusCode.FailedDependency, "Invalid app secret.")
             return@post
         }
 
         val unregisteredDevice = UnregisteredDevice(
-            UUID.randomUUID().toString().uppercase(), deviceInfo,
+            UUID.randomUUID().toString().uppercase(), deviceInfo.copy(appSecret = ""),
             Clock.System.now().epochSeconds + 70, Random.nextInt(100000, 999999)
         )
 

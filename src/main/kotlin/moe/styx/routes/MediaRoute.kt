@@ -177,9 +177,9 @@ fun Route.watched() {
     }
 }
 
-suspend inline fun <reified T> ApplicationCall.receiveGenericContent(form: Parameters): T? {
+suspend inline fun <reified T> ApplicationCall.receiveGenericContent(form: Parameters, formParam: String = "content"): T? {
     return runCatching {
-        json.decodeFromString<T>(form["content"]!!)
+        json.decodeFromString<T>(form[formParam]!!)
     }.onFailure {
         respondStyx(HttpStatusCode.BadRequest, "Could not find valid form entry for the '${T::class.simpleName}' type.")
     }.getOrNull()
