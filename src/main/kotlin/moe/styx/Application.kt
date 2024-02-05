@@ -28,6 +28,7 @@ var changes: Changes = Changes(0, 0)
 var changesUpdated = 0L
 
 var changesFile: File = File("")
+var secretsFile: File = File("SECRETS")
 private var configFile: File = File("")
 
 fun loadDBConfig() {
@@ -37,6 +38,7 @@ fun loadDBConfig() {
         apiDir.mkdirs()
         configFile = File(apiDir, "config.json")
         changesFile = File(styxDir, "changes.json")
+        secretsFile = File(apiDir, "SECRETS")
     } else {
         val configDir = File(System.getProperty("user.home"), ".config")
         val styxDir = File(configDir, "Styx")
@@ -44,10 +46,16 @@ fun loadDBConfig() {
         apiDir.mkdirs()
         configFile = File(apiDir, "config.json")
         changesFile = File(styxDir, "changes.json")
+        secretsFile = File(apiDir, "SECRETS")
     }
     if (!configFile.exists()) {
         configFile.writeText(Json(json) { prettyPrint = true }.encodeToString(config))
         println("Please fill in your config.json! Located at: ${configFile.absolutePath}")
+        exitProcess(1)
+    }
+
+    if (!secretsFile.exists() || secretsFile.readText().isBlank()) {
+        println("Make sure you have a secrets file in your API directory.\nThis should contain all valid app-secrets for auth. Separated by a newline.")
         exitProcess(1)
     }
 

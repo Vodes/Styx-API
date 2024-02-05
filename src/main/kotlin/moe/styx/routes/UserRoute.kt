@@ -8,11 +8,10 @@ import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
-import moe.styx.db.getDevices
-import moe.styx.db.getUsers
-import moe.styx.db.save
+import moe.styx.db.*
 import moe.styx.getDBClient
 import moe.styx.respondStyx
+import moe.styx.secretsFile
 import moe.styx.types.*
 import java.util.*
 import kotlin.random.Random
@@ -21,10 +20,31 @@ fun Route.deviceLogin() {
     post("/login") {
         val form = call.receiveParameters()
         val token = form["token"]
+        val deviceInfo = call.receiveGenericContent<DeviceInfo>(form) ?: return@post
         val (user, device) = checkTokenDeviceUser(token, call, login = true)
         if (device == null || user == null)
             return@post
+        val secret = secretsFile.readLines().filter { it.trim().isNotBlank() }.find { it eqI deviceInfo.appSecret }
+        if (secret == null) {
+            call.respondStyx(HttpStatusCode.FailedDependency, "Invalid app secret.")
+            return@post
+        }
         call.respond(HttpStatusCode.OK, createLoginResponse(device, user))
+    }
+    
+    post("/logout") {
+        val form = call.receiveParameters()
+        val token = form["token"]
+        val (user, device) = checkTokenDeviceUser(token, call)
+        if (device == null || user == null)
+            return@post
+
+        getDBClient().executeAndClose {
+            val active = getActiveUsers().find { it.deviceID eqI device.GUID }
+            if (active != null)
+                delete(active)
+        }
+        call.respond(HttpStatusCode.OK)
     }
 }
 
