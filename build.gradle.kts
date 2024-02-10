@@ -2,9 +2,9 @@ val ktorVersion: String by project
 val logbackVersion: String by project
 
 plugins {
-    kotlin("jvm") version "1.9.21"
-    id("io.ktor.plugin") version "2.3.7"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.21"
+    kotlin("jvm") version "1.9.22"
+    id("io.ktor.plugin") version "2.3.8"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
 }
 
 group = "moe.styx"
@@ -23,7 +23,7 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("moe.styx:styx-db:0.5")
+    implementation("moe.styx:styx-db:0.0.5")
     // Server
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-resources:$ktorVersion")
@@ -40,14 +40,6 @@ dependencies {
     implementation("io.ktor:ktor-network-tls-jvm:$ktorVersion")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
-    // Client
-    implementation("io.ktor:ktor-client-core:$ktorVersion")
-    implementation("io.ktor:ktor-client-java:$ktorVersion")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    implementation("io.ktor:ktor-client-encoding:$ktorVersion")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
     implementation("com.mysql:mysql-connector-j:8.2.0")
 }
 kotlin {

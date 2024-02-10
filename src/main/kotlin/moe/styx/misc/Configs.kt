@@ -4,8 +4,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Config(
-    val baseURL: String = "https://api.styx.moe",
-    val mainSiteBaseURL: String = "https://beta.styx.moe",
+    val baseURL: String = "",
+    val mainSiteBaseURL: String = "",
     val discordClientID: String = "",
     val discordClientSecret: String = "",
     val nginxWatchLogFile: String = "",

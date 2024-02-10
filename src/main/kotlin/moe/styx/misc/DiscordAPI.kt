@@ -9,9 +9,9 @@ import io.ktor.server.response.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import moe.styx.common.http.httpClient
+import moe.styx.common.json
 import moe.styx.config
-import moe.styx.httpClient
-import moe.styx.types.json
 
 object DiscordAPI {
     fun getUserFromToken(token: String): DiscordUser? = runBlocking {

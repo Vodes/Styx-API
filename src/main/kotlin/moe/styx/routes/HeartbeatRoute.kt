@@ -6,13 +6,13 @@ import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
 import kotlinx.serialization.encodeToString
+import moe.styx.common.data.ActiveUser
+import moe.styx.common.data.ClientHeartbeat
+import moe.styx.common.json
 import moe.styx.db.getActiveUsers
 import moe.styx.db.save
 import moe.styx.getDBClient
 import moe.styx.respondStyx
-import moe.styx.types.ActiveUser
-import moe.styx.types.ClientHeartbeat
-import moe.styx.types.json
 
 fun Route.heartbeat() {
     post("/heartbeat") {

@@ -6,10 +6,11 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import moe.styx.changes
+import moe.styx.common.data.*
+import moe.styx.common.json
 import moe.styx.db.*
 import moe.styx.getDBClient
 import moe.styx.respondStyx
-import moe.styx.types.*
 import java.io.File
 
 fun Route.media() {
