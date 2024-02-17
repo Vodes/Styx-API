@@ -12,7 +12,8 @@ data class Config(
     val dbIP: String,
     val dbUser: String,
     val dbPass: String,
-    val mpvFolder: String = ""
+    val mpvFolder: String = "",
+    val imageDir: String = ""
 )
 
 @Serializable

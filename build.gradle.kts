@@ -18,7 +18,7 @@ application {
 
 repositories {
     mavenCentral()
-    mavenLocal()
+    maven { url = uri("https://repo.styx.moe/releases") }
 }
 
 dependencies {

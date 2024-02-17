@@ -1,14 +1,12 @@
 package moe.styx.tasks
 
 import kotlinx.datetime.Clock
-import moe.styx.changes
-import moe.styx.changesFile
-import moe.styx.changesUpdated
+import moe.styx.*
 import moe.styx.common.extension.eqI
 import moe.styx.common.json
 import moe.styx.db.*
-import moe.styx.getDBClient
 import moe.styx.routes.watch.checkTrafficBuffers
+import java.io.File
 
 
 enum class Tasks(val seconds: Int, val run: () -> Unit, val initialWait: Int = 5) {
@@ -64,12 +62,29 @@ private fun springCleaning() {
             if (entry == null || user == null)
                 delete(wat).also { deletedWatched++ }
         }
+        var deletedImages = 0
+        if (config.imageDir.isNotBlank()) {
+            val files = File(config.imageDir).listFiles()?.filter { it.isFile && it.extension.lowercase() in arrayOf("webp", "png", "jpg") }
+                ?: emptyList<File>()
+            val images = getImages()
+            for (img in images) {
+                val media = mediaList.find { it.thumbID eqI img.GUID || it.bannerID eqI img.GUID }
+                if (media != null)
+                    continue
+                delete(img)
+                val imgFile = files.find { it.nameWithoutExtension eqI img.GUID }
+                if (imgFile != null && imgFile.exists())
+                    imgFile.delete()
+                deletedImages++
+            }
+        }
 
-        if (deletedWatched != 0 || deletedFavs != 0)
+        if (deletedWatched != 0 || deletedFavs != 0 || deletedImages != 0)
             println(
                 "Spring Cleaning Complete:\n\n" +
                         "Deleted MediaWatched entries: $deletedWatched\n" +
-                        "Deleted Favourites: $deletedFavs\n"
+                        "Deleted Favourites: $deletedFavs\n" +
+                        "Deleted unused images: $deletedImages\n"
             )
     }
 }
