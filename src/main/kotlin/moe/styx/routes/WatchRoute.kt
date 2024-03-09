@@ -1,11 +1,10 @@
 package moe.styx.routes
 
-import io.ktor.http.content.*
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import moe.styx.common.data.Device
-import moe.styx.routes.watch.CustomLocalFileContent
+import moe.styx.respondStyx
 import java.io.File
 
 fun Route.watch() {
@@ -18,12 +17,15 @@ fun Route.watch() {
             return@get
 
         val entry = checkMediaEntry(call.parameters["media"], call) ?: return@get
-        call.respondFile(File(entry.filePath))
-        //call.customRespondFile(File(entry.filePath), device)
+        val file = File(entry.filePath)
+        if (!file.exists()) {
+            call.respondStyx(HttpStatusCode.NotFound, "Could not find file on the server.")
+            return@get
+        }
+        call.response.header(
+            HttpHeaders.ContentDisposition,
+            ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, file.name).toString()
+        )
+        call.respondFile(file)
     }
-}
-
-suspend fun ApplicationCall.customRespondFile(file: File, device: Device, configure: OutgoingContent.() -> Unit = {}) {
-    val message = CustomLocalFileContent(file, device = device).apply(configure)
-    respond(message)
 }

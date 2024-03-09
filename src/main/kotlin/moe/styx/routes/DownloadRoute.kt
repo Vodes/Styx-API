@@ -16,7 +16,7 @@ fun Route.downloadVersions() {
         val (user, device) = checkTokenDeviceUser(token, call)
         if (device == null || user == null)
             return@get
-        
+
         val buildDir = File(config.buildDir)
         if (config.buildDir.isBlank() || !buildDir.exists() || !buildDir.isDirectory) {
             call.respondStyx(HttpStatusCode.NotFound, "Could not find any builds on the server.")
@@ -28,6 +28,10 @@ fun Route.downloadVersions() {
             call.respondStyx(HttpStatusCode.NotFound, "Could not find latest windows build on the server.")
             return@get
         }
+        call.response.header(
+            HttpHeaders.ContentDisposition,
+            ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, winMsi.name).toString()
+        )
         call.respondFile(winMsi)
     }
 }

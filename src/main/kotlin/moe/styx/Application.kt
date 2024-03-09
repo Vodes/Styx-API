@@ -4,6 +4,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.autohead.*
 import io.ktor.server.plugins.compression.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.defaultheaders.*
@@ -110,6 +111,7 @@ fun Application.module() {
     install(ContentNegotiation) {
         json(json)
     }
+    install(AutoHeadResponse)
     install(Sessions)
     //install(trafficPlugin)
 
