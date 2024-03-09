@@ -13,9 +13,9 @@ import io.ktor.server.sessions.*
 import kotlinx.datetime.Clock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import moe.styx.common.data.Changes
 import moe.styx.common.json
 import moe.styx.db.StyxDBClient
-import moe.styx.misc.Changes
 import moe.styx.misc.Config
 import moe.styx.misc.startParsing
 import moe.styx.routes.*
@@ -128,5 +128,6 @@ fun Application.module() {
 
         changes()
         mpvRoute()
+        downloadVersions()
     }
 }

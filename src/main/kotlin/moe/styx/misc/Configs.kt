@@ -13,8 +13,7 @@ data class Config(
     val dbUser: String,
     val dbPass: String,
     val mpvFolder: String = "",
-    val imageDir: String = ""
+    val imageDir: String = "",
+    val buildDir: String = "",
+    val androidBuildDir: String = ""
 )
-
-@Serializable
-data class Changes(val media: Long, val entry: Long)
