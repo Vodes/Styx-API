@@ -1,12 +1,14 @@
 package moe.styx.routes.watch
 
 import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import moe.styx.common.data.Device
 import moe.styx.common.extension.toBoolean
-import moe.styx.getDBClient
+import moe.styx.db.tables.DeviceTrafficTable
+import moe.styx.transaction
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.upsert
 
 /* TODO: Make a class like DeviceTrafficBuffer containing a Device, a bytes Long
     and a "last updated" variable (just current unix time)
@@ -48,33 +50,24 @@ fun checkTrafficBuffers() {
     }
 }
 
-private fun exists(buffer: DeviceTrafficBuffer, now: LocalDateTime): Boolean {
-    return getDBClient().executeGet {
-        val stat = openStatement("SELECT * FROM DeviceTraffic WHERE deviceID=? AND year=? AND month=? AND day=?;") {
-            setString(1, buffer.device.GUID)
-            setInt(2, now.year)
-            setInt(3, now.monthNumber)
-            setInt(4, now.dayOfMonth)
-        }
-        stat.executeQuery().next().also { stat.close() }
-    }
-}
-
 fun syncTrafficToDB(buffer: DeviceTrafficBuffer): Boolean {
     val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-    val update = exists(buffer, now)
-    val query = if (update) "UPDATE DeviceTraffic SET bytes = bytes + ${buffer.bytes} WHERE deviceID=? AND year=? AND month=? AND day=?;" else
-        "INSERT INTO DeviceTraffic (deviceID, year, month, day, bytes) VALUES(?, ?, ?, ?, ?);"
+    return transaction {
+        val existing =
+            DeviceTrafficTable.select(DeviceTrafficTable.bytes)
+                .where {
+                    DeviceTrafficTable.deviceID eq buffer.device.GUID and
+                            (DeviceTrafficTable.year eq now.year) and
+                            (DeviceTrafficTable.month eq now.monthNumber) and
+                            (DeviceTrafficTable.day eq now.dayOfMonth)
+                }.toList().firstOrNull()
 
-    return getDBClient().executeGet {
-        val stat = openStatement(query) {
-            setString(1, buffer.device.GUID)
-            setInt(2, now.year)
-            setInt(3, now.monthNumber)
-            setInt(4, now.dayOfMonth)
-            if (!update)
-                setLong(5, buffer.bytes)
+        DeviceTrafficTable.upsert {
+            it[deviceID] = buffer.device.GUID
+            it[year] = now.year
+            it[month] = now.monthNumber
+            it[day] = now.dayOfMonth
+            it[bytes] = existing?.let { it[bytes] + buffer.bytes } ?: buffer.bytes
         }
-        stat.executeUpdate().toBoolean().also { stat.close(); }
-    }
+    }.insertedCount.toBoolean()
 }

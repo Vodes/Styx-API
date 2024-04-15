@@ -9,10 +9,10 @@ import kotlinx.serialization.encodeToString
 import moe.styx.common.data.ActiveUser
 import moe.styx.common.data.ClientHeartbeat
 import moe.styx.common.json
-import moe.styx.db.getActiveUsers
-import moe.styx.db.save
-import moe.styx.getDBClient
+import moe.styx.db.tables.ActiveUserTable
 import moe.styx.respondStyx
+import moe.styx.transaction
+import org.jetbrains.exposed.sql.selectAll
 
 fun Route.heartbeat() {
     post("/heartbeat") {
@@ -24,7 +24,7 @@ fun Route.heartbeat() {
         if (user == null || device == null)
             return@post
 
-        val activeUsers = getDBClient().executeGet {
+        val activeUsers = transaction {
             val now = Clock.System.now().epochSeconds
             val thisUser =
                 ActiveUser(
@@ -35,8 +35,8 @@ fun Route.heartbeat() {
                     clientHeartbeat.mediaActivity?.takeIf { it.mediaEntry.isNotBlank() },
                     clientHeartbeat.listeningTo
                 )
-            save(thisUser)
-            return@executeGet getActiveUsers().filter { (it.lastPing ?: -1) > (now - 60) }
+            ActiveUserTable.upsertItem(thisUser)
+            ActiveUserTable.query { selectAll().toList() }.filter { (it.lastPing ?: -1) > (now - 45) }
         }
         call.respondStyx(HttpStatusCode.OK, json.encodeToString(activeUsers), true)
     }

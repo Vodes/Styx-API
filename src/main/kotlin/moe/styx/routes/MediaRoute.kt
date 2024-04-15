@@ -5,12 +5,17 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import moe.styx.changes
 import moe.styx.common.data.*
+import moe.styx.common.extension.toBoolean
 import moe.styx.common.json
-import moe.styx.db.*
-import moe.styx.getDBClient
+import moe.styx.db.tables.*
 import moe.styx.respondStyx
+import moe.styx.transaction
+import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.selectAll
 import java.io.File
 
 fun Route.media() {
@@ -19,7 +24,7 @@ fun Route.media() {
         val token = form["token"]
         if (!checkToken(token, call)) return@post
 
-        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getMedia() })
+        call.respond(HttpStatusCode.OK, transaction { MediaTable.query { selectAll().toList() } })
     }
 
     post("/media/entries") {
@@ -27,7 +32,7 @@ fun Route.media() {
         val token = form["token"]
         if (!checkToken(token, call)) return@post
 
-        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getEntries() })
+        call.respond(HttpStatusCode.OK, transaction { MediaEntryTable.query { selectAll().toList() } })
     }
 
     post("/media/info") {
@@ -35,7 +40,7 @@ fun Route.media() {
         val token = form["token"]
         if (!checkToken(token, call)) return@post
 
-        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getMediaInfo() })
+        call.respond(HttpStatusCode.OK, transaction { MediaInfoTable.query { selectAll().toList() } })
     }
 
     post("/media/images") {
@@ -43,7 +48,7 @@ fun Route.media() {
         val token = form["token"]
         if (!checkToken(token, call)) return@post
 
-        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getImages() })
+        call.respond(HttpStatusCode.OK, transaction { ImageTable.query { selectAll().toList() } })
     }
 
     post("/media/schedules") {
@@ -51,7 +56,7 @@ fun Route.media() {
         val token = form["token"]
         if (!checkToken(token, call)) return@post
 
-        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getSchedules() })
+        call.respond(HttpStatusCode.OK, transaction { MediaScheduleTable.query { selectAll().toList() } })
     }
 
     post("/media/categories") {
@@ -59,14 +64,16 @@ fun Route.media() {
         val token = form["token"]
         if (!checkToken(token, call)) return@post
 
-        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getCategories() })
+        call.respond(
+            HttpStatusCode.OK,
+            transaction { CategoryTable.query { selectAll().orderBy(isSeries to SortOrder.DESC, sort to SortOrder.DESC).toList() } })
     }
 }
 
 
 fun Route.changes() {
     get("/changes") {
-        call.respond(HttpStatusCode.OK, changes)
+        call.respond(HttpStatusCode.OK, transaction { ChangesTable.getCurrent() } ?: Changes(0, 0))
     }
 }
 
@@ -75,7 +82,7 @@ fun Route.favourites() {
         val form = call.receiveParameters()
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
-        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getFavourites(mapOf("userID" to user.GUID)) })
+        call.respond(HttpStatusCode.OK, transaction { FavouriteTable.query { selectAll().where { userID eq user.GUID }.toList() } })
     }
 
     post("/favourites/add") {
@@ -85,7 +92,11 @@ fun Route.favourites() {
         val user = checkTokenUser(token, call) ?: return@post
         val fav = call.receiveGenericContent<Favourite>(form) ?: return@post
 
-        if (getDBClient().executeGet { save(fav.copy(userID = user.GUID)) }) {
+        val result = transaction {
+            FavouriteTable.upsertItem(fav.copy(userID = user.GUID))
+        }.insertedCount.toBoolean()
+
+        if (result) {
             call.respondStyx(HttpStatusCode.OK, "Favourite added.")
         } else {
             call.respondStyx(HttpStatusCode.InternalServerError, "Failed to add favourite.")
@@ -99,7 +110,9 @@ fun Route.favourites() {
         val user = checkTokenUser(token, call) ?: return@post
         val fav = call.receiveGenericContent<Favourite>(form) ?: return@post
 
-        if (getDBClient().executeGet { delete(fav.copy(userID = user.GUID)) }) {
+        val result = transaction { FavouriteTable.deleteWhere { userID eq user.GUID and (mediaID eq fav.mediaID) } }.toBoolean()
+
+        if (result) {
             call.respondStyx(HttpStatusCode.OK, "Favourite deleted.")
         } else {
             call.respondStyx(HttpStatusCode.InternalServerError, "Failed to delete favourite.")
@@ -111,9 +124,9 @@ fun Route.favourites() {
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
         val queuedChanges = call.receiveGenericContent<QueuedFavChanges>(form) ?: return@post
-        getDBClient().executeAndClose {
-            queuedChanges.toAdd.forEach { save(it.copy(userID = user.GUID)) }
-            queuedChanges.toRemove.forEach { delete(it.copy(userID = user.GUID)) }
+        transaction {
+            queuedChanges.toAdd.forEach { FavouriteTable.upsertItem(it.copy(userID = user.GUID)) }
+            queuedChanges.toRemove.forEach { fav -> FavouriteTable.deleteWhere { userID eq user.GUID and (mediaID eq fav.mediaID) } }
         }
         call.respondStyx(HttpStatusCode.OK, "")
     }
@@ -124,7 +137,7 @@ fun Route.watched() {
         val form = call.receiveParameters()
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
-        call.respond(HttpStatusCode.OK, getDBClient().executeGet { getMediaWatched(mapOf("userID" to user.GUID)) })
+        call.respond(HttpStatusCode.OK, transaction { MediaWatchedTable.query { selectAll().where { userID eq user.GUID }.toList() } })
     }
 
     post("/watched/add") {
@@ -132,16 +145,20 @@ fun Route.watched() {
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
         val mediaWatched = call.receiveGenericContent<MediaWatched>(form) ?: return@post
-        if (getDBClient().executeGet {
-                val existing = getMediaWatched(mapOf("entryID" to mediaWatched.entryID, "userID" to user.GUID)).firstOrNull()
-                val existingProgress = existing?.maxProgress ?: 0F
-                return@executeGet save(
-                    mediaWatched.copy(
-                        userID = user.GUID,
-                        maxProgress = if (existingProgress > mediaWatched.maxProgress) existingProgress else mediaWatched.maxProgress
-                    )
+        val existing =
+            transaction {
+                MediaWatchedTable.query { selectAll().where { userID eq user.GUID and (entryID eq mediaWatched.entryID) }.toList() }.firstOrNull()
+            }
+        val existingProgress = existing?.maxProgress ?: 0F
+        val trans = transaction {
+            MediaWatchedTable.upsertItem(
+                mediaWatched.copy(
+                    userID = user.GUID,
+                    maxProgress = if (existingProgress > mediaWatched.maxProgress) existingProgress else mediaWatched.maxProgress
                 )
-            })
+            )
+        }
+        if (trans.insertedCount.toBoolean())
             call.respondStyx(HttpStatusCode.OK, "")
         else
             call.respondStyx(HttpStatusCode.InternalServerError, "Failed to save watched entry!")
@@ -151,7 +168,8 @@ fun Route.watched() {
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
         val mediaWatched = call.receiveGenericContent<MediaWatched>(form) ?: return@post
-        if (getDBClient().executeGet { delete(mediaWatched.copy(userID = user.GUID)) })
+
+        if (transaction { MediaWatchedTable.deleteWhere { userID eq user.GUID and (entryID eq mediaWatched.entryID) } }.toBoolean())
             call.respondStyx(HttpStatusCode.OK, "")
         else
             call.respondStyx(HttpStatusCode.InternalServerError, "Failed to delete watched entry!")
@@ -161,18 +179,24 @@ fun Route.watched() {
         val token = form["token"]
         val user = checkTokenUser(token, call) ?: return@post
         val queuedChanges = call.receiveGenericContent<QueuedWatchedChanges>(form) ?: return@post
-        getDBClient().executeAndClose {
-            queuedChanges.toUpdate.forEach {
-                var entry = it.copy(userID = user.GUID)
-                val existing = getMediaWatched(mapOf("entryID" to entry.entryID, "userID" to entry.userID)).firstOrNull()
-                if (existing != null && existing.maxProgress > it.maxProgress)
-                    entry = it.copy(maxProgress = existing.maxProgress)
-                save(entry)
+
+        queuedChanges.toUpdate.forEach { watched ->
+            val existing =
+                transaction {
+                    MediaWatchedTable.query { selectAll().where { userID eq user.GUID and (entryID eq watched.entryID) }.toList() }.firstOrNull()
+                }
+            val existingProgress = existing?.maxProgress ?: 0F
+            transaction {
+                MediaWatchedTable.upsertItem(
+                    watched.copy(
+                        userID = user.GUID,
+                        maxProgress = if (existingProgress > watched.maxProgress) existingProgress else watched.maxProgress
+                    )
+                )
             }
-            queuedChanges.toRemove.forEach {
-                val entry = it.copy(userID = user.GUID)
-                delete(entry)
-            }
+        }
+        transaction {
+            queuedChanges.toRemove.forEach { mediaWatched -> MediaWatchedTable.deleteWhere { userID eq user.GUID and (entryID eq mediaWatched.entryID) } }
         }
         call.respondStyx(HttpStatusCode.OK, "")
     }
@@ -191,7 +215,7 @@ suspend fun checkMedia(id: String?, call: ApplicationCall): Media? {
         call.respondStyx(HttpStatusCode.BadRequest, "No media ID was found in your request.")
         return null
     }
-    val media = getDBClient().executeGet { getMedia(mapOf("GUID" to id)).firstOrNull() }
+    val media = transaction { MediaTable.query { selectAll().where { GUID eq id }.toList() }.firstOrNull() }
 
     if (media == null)
         call.respondStyx(HttpStatusCode.NotFound, "No media with that ID was found.")
@@ -204,7 +228,7 @@ suspend fun checkMediaEntry(id: String?, call: ApplicationCall): MediaEntry? {
         call.respondStyx(HttpStatusCode.BadRequest, "No entry ID was found in your request.")
         return null
     }
-    var entry = getDBClient().executeGet { getEntries(mapOf("GUID" to id)).firstOrNull() }
+    var entry = transaction { MediaEntryTable.query { selectAll().where { GUID eq id }.toList() }.firstOrNull() }
 
     if (entry == null)
         call.respondStyx(HttpStatusCode.NotFound, "No entry with that ID was found.")
@@ -232,8 +256,7 @@ suspend fun checkTokenUser(token: String?, call: ApplicationCall): User? {
 suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall, login: Boolean = false, watch: Boolean = false): Pair<User?, Device?> {
     if (token.isNullOrBlank())
         call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.").also { return null to null }
-    val dbClient = getDBClient()
-    val device = dbClient.getDevices().find {
+    val device = transaction { DeviceTable.query { selectAll().toList() } }.find {
         if (!login)
             if (watch)
                 it.watchToken.equals(token, true)
@@ -244,11 +267,10 @@ suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall, login: B
     }
     if (device == null)
         call.respondStyx(HttpStatusCode.Unauthorized, "No device has been found for this token.").also {
-            dbClient.closeConnection()
             return null to null
         }
 
-    val user = dbClient.getUsers().find { it.GUID.equals(device!!.userID, true) }
+    val user = transaction { UserTable.query { selectAll().where { GUID eq device!!.userID }.toList() } }.firstOrNull()
     if (user == null)
         call.respondStyx(HttpStatusCode.Unauthorized, "No user relating to this device has been found.")
 
@@ -257,6 +279,5 @@ suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall, login: B
         return null to null
     }
 
-    dbClient.closeConnection()
     return user to device
 }

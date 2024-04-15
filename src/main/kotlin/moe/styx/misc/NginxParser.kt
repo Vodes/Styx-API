@@ -4,10 +4,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import moe.styx.common.extension.eqI
 import moe.styx.config
-import moe.styx.db.getDevices
-import moe.styx.getDBClient
+import moe.styx.db.tables.DeviceTable
 import moe.styx.routes.watch.addTraffic
+import moe.styx.transaction
+import org.jetbrains.exposed.sql.selectAll
 import java.io.File
 
 val watchTrafficRegex =
@@ -28,14 +30,13 @@ fun startParsing() {
         delay(10000)
         while (true) {
             val lines = file.readLines()
-            getDBClient().executeAndClose {
-                for (line in lines.filter { !parsedLines.contains(it) }) {
-                    parsedLines.add(line)
-                    val match = watchTrafficRegex.find(line) ?: continue
-                    val device = match.groups["token"]?.value?.let { getDevices(mapOf("watchToken" to it)).firstOrNull() } ?: continue
-                    val traffic = match.groups["bytes"]?.value?.toLongOrNull() ?: continue
-                    addTraffic(device, traffic)
-                }
+            val devices = transaction { DeviceTable.query { selectAll().toList() } }
+            for (line in lines.filter { !parsedLines.contains(it) }) {
+                parsedLines.add(line)
+                val match = watchTrafficRegex.find(line) ?: continue
+                val device = match.groups["token"]?.value?.let { devices.find { dev -> dev.watchToken eqI it } } ?: continue
+                val traffic = match.groups["bytes"]?.value?.toLongOrNull() ?: continue
+                addTraffic(device, traffic)
             }
             if (parsedLines.size > 100 && file.canWrite()) {
                 parsedLines.clear()

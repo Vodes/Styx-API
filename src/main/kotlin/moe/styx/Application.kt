@@ -11,11 +11,10 @@ import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.plugins.partialcontent.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
-import kotlinx.datetime.Clock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import moe.styx.common.data.Changes
 import moe.styx.common.json
+import moe.styx.db.DBClient
 import moe.styx.db.StyxDBClient
 import moe.styx.misc.Config
 import moe.styx.misc.startParsing
@@ -25,12 +24,10 @@ import java.io.File
 import kotlin.system.exitProcess
 
 var config: Config = Config(dbIP = "", dbPass = "", dbUser = "")
-var changes: Changes = Changes(0, 0)
-var changesUpdated = 0L
-
-var changesFile: File = File("")
 var secretsFile: File = File("SECRETS")
 private var configFile: File = File("")
+
+val dbClient by lazy { DBClient("jdbc:postgresql://${config.dbIP}/Styx", "org.postgresql.Driver", config.dbUser, config.dbPass, 25) }
 
 fun loadDBConfig() {
     if (System.getProperty("os.name").lowercase().contains("win")) {
@@ -38,7 +35,6 @@ fun loadDBConfig() {
         val apiDir = File(styxDir, "API-v2")
         apiDir.mkdirs()
         configFile = File(apiDir, "config.json")
-        changesFile = File(styxDir, "changes.json")
         secretsFile = File(apiDir, "SECRETS")
     } else {
         val configDir = File(System.getProperty("user.home"), ".config")
@@ -46,7 +42,6 @@ fun loadDBConfig() {
         val apiDir = File(styxDir, "API-v2")
         apiDir.mkdirs()
         configFile = File(apiDir, "config.json")
-        changesFile = File(styxDir, "changes.json")
         secretsFile = File(apiDir, "SECRETS")
     }
     if (!configFile.exists()) {
@@ -60,18 +55,8 @@ fun loadDBConfig() {
         exitProcess(1)
     }
 
-    if (!changesFile.exists()) {
-        changesFile.writeText(json.encodeToString(changes))
-    }
-
     config = json.decodeFromString(configFile.readText())
-    changes = json.decodeFromString(changesFile.readText())
-    changesUpdated = Clock.System.now().epochSeconds
-}
-
-fun updateChanges(media: Long, entry: Long) {
-    changes = Changes(media, entry)
-    changesFile.writeText(json.encodeToString(changes))
+    dbClient.transaction { dbClient.createTables() }
 }
 
 fun getDBClient(): StyxDBClient {
@@ -84,13 +69,14 @@ fun getDBClient(): StyxDBClient {
     )
 }
 
+fun <T> transaction(block: () -> T): T = org.jetbrains.exposed.sql.transactions.transaction(dbClient.databaseConnection) {
+    block()
+}
+
 fun main() {
     loadDBConfig()
     startTasks()
     startParsing()
-
-    if (!System.getProperty("os.name").contains("win", true) && changes.media == 0L)
-        updateChanges(Clock.System.now().epochSeconds, Clock.System.now().epochSeconds)
 
     embeddedServer(Netty, port = 8081, host = "0.0.0.0", module = Application::module)
         .start(wait = true)

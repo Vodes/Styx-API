@@ -3,12 +3,12 @@ val logbackVersion: String by project
 
 plugins {
     kotlin("jvm") version "1.9.23"
-    id("io.ktor.plugin") version "2.3.9"
+    id("io.ktor.plugin") version "2.3.10"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
 }
 
 group = "moe.styx"
-version = "0.0.2"
+version = "0.1.0"
 application {
     mainClass.set("moe.styx.ApplicationKt")
 
@@ -18,12 +18,13 @@ application {
 
 repositories {
     mavenCentral()
-    maven { url = uri("https://repo.styx.moe/releases") }
+    maven("https://repo.styx.moe/releases")
+    maven("https://repo.styx.moe/snapshots")
 }
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("moe.styx:styx-db:0.0.6")
+    implementation("moe.styx:styx-db:0.1.1-SNAPSHOT")
     // Server
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-resources:$ktorVersion")
@@ -41,8 +42,8 @@ dependencies {
     implementation("io.ktor:ktor-network-tls-jvm:$ktorVersion")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
-    implementation("com.mysql:mysql-connector-j:8.2.0")
+    implementation("org.postgresql:postgresql:42.7.3")
 }
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }

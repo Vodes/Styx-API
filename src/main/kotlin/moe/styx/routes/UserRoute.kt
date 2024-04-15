@@ -10,14 +10,16 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 import kotlinx.serialization.encodeToString
-import moe.styx.IPDeviceEntry
+import moe.styx.*
 import moe.styx.common.data.*
 import moe.styx.common.extension.eqI
+import moe.styx.common.extension.toBoolean
 import moe.styx.common.json
-import moe.styx.db.*
-import moe.styx.getDBClient
-import moe.styx.respondStyx
-import moe.styx.secretsFile
+import moe.styx.common.util.launchGlobal
+import moe.styx.db.tables.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.selectAll
 import java.util.*
 import kotlin.random.Random
 
@@ -34,20 +36,22 @@ fun Route.deviceLogin() {
             call.respondStyx(HttpStatusCode.FailedDependency, "Invalid app secret.")
             return@post
         }
-        getDBClient().executeAndClose {
-            var ip = call.request.origin.remoteAddress
-            if (call.request.headers.contains("CF-Connecting-IP")) {
-                ip = call.request.headers["CF-Connecting-IP"] ?: ""
-            }
-            save(
-                Log(
-                    user.GUID,
-                    device.GUID,
-                    LogType.LOGIN,
-                    json.encodeToString(IPDeviceEntry(ip, deviceInfo.copy(appSecret = ""))),
-                    Clock.System.now().epochSeconds
+        launchGlobal {
+            transaction {
+                var ip = call.request.origin.remoteAddress
+                if (call.request.headers.contains("CF-Connecting-IP")) {
+                    ip = call.request.headers["CF-Connecting-IP"] ?: ""
+                }
+                LogTable.upsertItem(
+                    Log(
+                        user.GUID,
+                        device.GUID,
+                        LogType.LOGIN,
+                        json.encodeToString(IPDeviceEntry(ip, deviceInfo.copy(appSecret = ""))),
+                        Clock.System.now().epochSeconds
+                    )
                 )
-            )
+            }
         }
         call.respond(HttpStatusCode.OK, createLoginResponse(device, user))
     }
@@ -59,16 +63,20 @@ fun Route.deviceLogin() {
         if (device == null || user == null)
             return@post
 
-        getDBClient().executeAndClose {
-            val active = getActiveUsers().find { it.deviceID eqI device.GUID }
-            if (active != null)
-                delete(active)
+        val activeUsers = transaction { ActiveUserTable.query { selectAll().toList() } }
 
-            var ip = call.request.origin.remoteAddress
-            if (call.request.headers.contains("CF-Connecting-IP")) {
-                ip = call.request.headers["CF-Connecting-IP"] ?: ""
+        launchGlobal {
+            transaction {
+                val active = activeUsers.find { it.deviceID eqI device.GUID }
+                if (active != null)
+                    ActiveUserTable.deleteWhere { deviceID eq device.GUID }
+
+                var ip = call.request.origin.remoteAddress
+                if (call.request.headers.contains("CF-Connecting-IP")) {
+                    ip = call.request.headers["CF-Connecting-IP"] ?: ""
+                }
+                LogTable.upsertItem(Log(user.GUID, device.GUID, LogType.LOGOUT, "IP: $ip", Clock.System.now().epochSeconds))
             }
-            save(Log(user.GUID, device.GUID, LogType.LOGOUT, "IP: $ip", Clock.System.now().epochSeconds))
         }
         call.respond(HttpStatusCode.OK)
     }
@@ -90,7 +98,7 @@ fun Route.deviceCreate() {
             Clock.System.now().epochSeconds + 70, Random.nextInt(100000, 999999)
         )
 
-        if (getDBClient().executeGet { save(unregisteredDevice) }) {
+        if (transaction { UnregisteredDeviceTable.upsertItem(unregisteredDevice) }.insertedCount.toBoolean()) {
             call.respond(HttpStatusCode.OK, CreationResponse(unregisteredDevice.GUID, unregisteredDevice.code, unregisteredDevice.codeExpiry))
         } else {
             call.respondStyx(HttpStatusCode.InternalServerError, "Something went wrong trying to connect to the database!")
@@ -107,8 +115,7 @@ fun Route.deviceFirstAuth() {
             call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.")
             return@post
         }
-
-        val device = getDBClient().executeGet { getDevices(mapOf("GUID" to token)).firstOrNull() }
+        val device = transaction { DeviceTable.query { selectAll().where { GUID eq token }.toList() }.firstOrNull() }
 
         if (device == null) {
             call.respondStyx(HttpStatusCode.Unauthorized, "No device found for this token.")
@@ -117,12 +124,12 @@ fun Route.deviceFirstAuth() {
                 call.respondStyx(HttpStatusCode.Forbidden, "This device has already been registered.")
                 return@post
             }
-            val users = getDBClient().executeGet { getUsers(mapOf("GUID" to device.userID)) }
-            if (users.isEmpty()) {
+            val user = transaction { UserTable.query { selectAll().where { GUID eq device.userID }.toList() } }.firstOrNull()
+            if (user == null) {
                 call.respondStyx(HttpStatusCode.Unauthorized, "No user relating to this device has been found.")
                 return@post
             }
-            call.respond(HttpStatusCode.OK, createLoginResponse(device, users[0], true))
+            call.respond(HttpStatusCode.OK, createLoginResponse(device, user, true))
         }
     }
 }
@@ -136,10 +143,10 @@ private fun createLoginResponse(device: Device, user: User, first: Boolean = fal
     if (first)
         device.refreshToken = UUID.randomUUID().toString().uppercase()
 
-    val dbClient = getDBClient()
-    dbClient.save(device)
-    user.lastLogin = now.epochSeconds
-    dbClient.executeAndClose { dbClient.save(user) }
+    dbClient.transaction {
+        DeviceTable.upsertItem(device)
+        UserTable.upsertItem(user.copy(lastLogin = now.epochSeconds))
+    }
 
     return LoginResponse(
         user.name,
