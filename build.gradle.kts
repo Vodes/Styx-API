@@ -2,13 +2,13 @@ val ktorVersion: String by project
 val logbackVersion: String by project
 
 plugins {
-    kotlin("jvm") version "1.9.23"
+    kotlin("jvm") version "1.9.24"
     id("io.ktor.plugin") version "2.3.10"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.24"
 }
 
 group = "moe.styx"
-version = "0.1.0"
+version = "0.1.1"
 application {
     mainClass.set("moe.styx.ApplicationKt")
 
@@ -24,7 +24,7 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("moe.styx:styx-db:0.1.1-SNAPSHOT")
+    implementation("moe.styx:styx-db:0.1.1")
     // Server
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-resources:$ktorVersion")

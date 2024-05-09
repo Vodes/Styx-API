@@ -10,10 +10,6 @@ import moe.styx.transaction
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.upsert
 
-/* TODO: Make a class like DeviceTrafficBuffer containing a Device, a bytes Long
-    and a "last updated" variable (just current unix time)
-*/
-
 private var deviceList = mutableListOf<DeviceTrafficBuffer>()
 
 data class DeviceTrafficBuffer(val device: Device, var bytes: Long, var lastUpdated: Long)

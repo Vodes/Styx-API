@@ -1,11 +1,19 @@
 package moe.styx.tasks
 
 import kotlinx.datetime.Clock
+import moe.styx.common.extension.eqI
+import moe.styx.common.extension.toBoolean
+import moe.styx.config
+import moe.styx.db.tables.ImageTable
+import moe.styx.db.tables.MediaTable
 import moe.styx.db.tables.UnregisteredDeviceTable
 import moe.styx.routes.watch.checkTrafficBuffers
 import moe.styx.transaction
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
 import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.selectAll
+import java.io.File
 
 
 enum class Tasks(val seconds: Int, val run: () -> Unit, val initialWait: Int = 5) {
@@ -16,7 +24,7 @@ enum class Tasks(val seconds: Int, val run: () -> Unit, val initialWait: Int = 5
 
     SYNC_TRAFFIC(15, { checkTrafficBuffers() }, 10),
 
-//    SPRING_CLEANING(86400, { springCleaning() }, 300)
+    SPRING_CLEANING(86400, { deleteUnusedData() }, 120)
 }
 
 private fun cleanUnregistered() {
@@ -24,6 +32,35 @@ private fun cleanUnregistered() {
     transaction {
         UnregisteredDeviceTable.deleteWhere { codeExpiry less now }
     }
+}
+
+private fun deleteUnusedData() {
+    var deletedImages = 0
+    transaction {
+        val media = MediaTable.query { selectAll().toList() }
+        val images = ImageTable.query { selectAll().toList() }
+
+        val unused = images.filter { img -> media.find { it.thumbID eqI img.GUID || it.bannerID eqI img.GUID } == null }
+        if (unused.isNotEmpty()) {
+            val files = File(config.imageDir).listFiles()
+                ?.filter { it.isFile && it.extension.lowercase() in arrayOf("webp", "png", "jpg", "jpeg") }
+                ?: emptyList<File>()
+            if (files.isNotEmpty()) {
+                unused.forEach { img ->
+                    val result = ImageTable.deleteWhere { GUID eq img.GUID }.toBoolean()
+                    if (result) {
+                        val file = files.find { it.nameWithoutExtension eqI img.GUID }
+                        if (file != null && file.exists()) {
+                            runCatching { file.delete() }
+                        }
+                        deletedImages++
+                    }
+                }
+            }
+        }
+    }
+    if (deletedImages != 0)
+        println("Deleted unused images: $deletedImages")
 }
 
 //private fun springCleaning() {

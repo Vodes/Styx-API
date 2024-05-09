@@ -15,7 +15,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import moe.styx.common.json
 import moe.styx.db.DBClient
-import moe.styx.db.StyxDBClient
 import moe.styx.misc.Config
 import moe.styx.misc.startParsing
 import moe.styx.routes.*
@@ -27,7 +26,15 @@ var config: Config = Config(dbIP = "", dbPass = "", dbUser = "")
 var secretsFile: File = File("SECRETS")
 private var configFile: File = File("")
 
-val dbClient by lazy { DBClient("jdbc:postgresql://${config.dbIP}/Styx", "org.postgresql.Driver", config.dbUser, config.dbPass, 25) }
+val dbClient by lazy {
+    DBClient(
+        "jdbc:postgresql://${config.dbIP}/Styx",
+        "org.postgresql.Driver",
+        config.dbUser,
+        config.dbPass,
+        25
+    )
+}
 
 fun loadDBConfig() {
     if (System.getProperty("os.name").lowercase().contains("win")) {
@@ -59,19 +66,10 @@ fun loadDBConfig() {
     dbClient.transaction { dbClient.createTables() }
 }
 
-fun getDBClient(): StyxDBClient {
-    return StyxDBClient(
-        "com.mysql.cj.jdbc.Driver",
-        "jdbc:mysql://${config.dbIP}/Styx2?" +
-                "useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Europe/Berlin",
-        config.dbUser,
-        config.dbPass
-    )
-}
-
-fun <T> transaction(block: () -> T): T = org.jetbrains.exposed.sql.transactions.transaction(dbClient.databaseConnection) {
-    block()
-}
+fun <T> transaction(block: () -> T): T =
+    org.jetbrains.exposed.sql.transactions.transaction(dbClient.databaseConnection) {
+        block()
+    }
 
 fun main() {
     loadDBConfig()
