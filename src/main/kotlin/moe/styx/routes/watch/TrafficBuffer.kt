@@ -38,8 +38,12 @@ fun checkTrafficBuffers() {
     try {
         for (d in deviceList) {
             if (d.lastUpdated + 10 < now) {
-                if (syncTrafficToDB(d))
-                    d.bytes = 0
+                runCatching {
+                    if (syncTrafficToDB(d))
+                        d.bytes = 0
+                }.onFailure {
+                    println("Failed to sync traffic for device ID: ${d.device.GUID} (${d.device.name})")
+                }
             }
         }
     } catch (_: Exception) {
