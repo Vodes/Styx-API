@@ -1,5 +1,6 @@
 package moe.styx
 
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -84,6 +85,7 @@ fun Application.module() {
     install(Compression) {
         gzip {
             priority = 1.0
+            matchContentType(ContentType.Text.Any, ContentType.Application.Json)
         }
     }
     install(DefaultHeaders) {
