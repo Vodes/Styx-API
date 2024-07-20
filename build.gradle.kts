@@ -9,6 +9,7 @@ plugins {
 
 group = "moe.styx"
 version = "0.2.2"
+
 application {
     mainClass.set("moe.styx.ApplicationKt")
 
@@ -25,6 +26,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation("moe.styx:styx-db:0.2.3")
+
     // Server
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-resources:$ktorVersion")
@@ -47,4 +49,12 @@ dependencies {
 
 kotlin {
     jvmToolchain(21)
+}
+
+tasks.register("shadow-ci") {
+    dependsOn("buildFatJar")
+    doLast {
+        val buildDir = File(projectDir, "build")
+        buildDir.walk().find { it.extension == "jar" && it.name.contains("-all") }?.copyTo(File(projectDir, "app.jar"))
+    }
 }
