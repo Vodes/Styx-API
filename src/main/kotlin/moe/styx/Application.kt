@@ -38,20 +38,18 @@ val dbClient by lazy {
 }
 
 fun loadDBConfig() {
-    if (System.getProperty("os.name").lowercase().contains("win")) {
+    val apiDir = if (System.getProperty("os.name").lowercase().contains("win")) {
         val styxDir = File(System.getenv("APPDATA"), "Styx")
-        val apiDir = File(styxDir, "API-v2")
-        apiDir.mkdirs()
-        configFile = File(apiDir, "config.json")
-        secretsFile = File(apiDir, "SECRETS")
+        File(styxDir, "API-v2").also { it.mkdirs() }
+    } else if (File("/.dockerenv").exists()) {
+        File("/config").also { it.mkdirs() }
     } else {
         val configDir = File(System.getProperty("user.home"), ".config")
         val styxDir = File(configDir, "Styx")
-        val apiDir = File(styxDir, "API-v2")
-        apiDir.mkdirs()
-        configFile = File(apiDir, "config.json")
-        secretsFile = File(apiDir, "SECRETS")
+        File(styxDir, "API-v2").also { it.mkdirs() }
     }
+    configFile = File(apiDir, "config.json")
+    secretsFile = File(apiDir, "SECRETS")
     if (!configFile.exists()) {
         configFile.writeText(Json(json) { prettyPrint = true }.encodeToString(config))
         println("Please fill in your config.json! Located at: ${configFile.absolutePath}")
