@@ -48,8 +48,9 @@ class CustomLocalFileContent(
         scope.launch {
             while (!channel.isClosedForRead)
                 delay(500L).also { println("Waiting for channel to close...") }
-            addTraffic(device, channel.totalBytesRead)
-            println("Adding ${channel.totalBytesRead} bytes of traffic to the buffer.")
+            val counted = channel.counted()
+            addTraffic(device, counted.totalBytesRead)
+            println("Adding ${counted.totalBytesRead} bytes of traffic to the buffer.")
             listenJob.complete()
         }
     }

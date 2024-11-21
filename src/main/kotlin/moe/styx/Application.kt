@@ -115,5 +115,6 @@ fun Application.module() {
         changes()
         mpvRoute()
         downloadVersions()
+        download()
     }
 }
