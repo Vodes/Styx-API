@@ -23,9 +23,13 @@ import moe.styx.tasks.startTasks
 import java.io.File
 import kotlin.system.exitProcess
 
-var config: Config = Config(dbIP = "", dbPass = "", dbUser = "")
+lateinit var config: Config
 var secretsFile: File = File("SECRETS")
 private var configFile: File = File("")
+
+val isDocker by lazy {
+    File("/.dockerenv").exists()
+}
 
 val dbClient by lazy {
     DBClient(
@@ -41,7 +45,7 @@ fun loadDBConfig() {
     val apiDir = if (System.getProperty("os.name").lowercase().contains("win")) {
         val styxDir = File(System.getenv("APPDATA"), "Styx")
         File(styxDir, "API-v2").also { it.mkdirs() }
-    } else if (File("/.dockerenv").exists()) {
+    } else if (isDocker) {
         File("/config").also { it.mkdirs() }
     } else {
         val configDir = File(System.getProperty("user.home"), ".config")
@@ -51,14 +55,21 @@ fun loadDBConfig() {
     configFile = File(apiDir, "config.json")
     secretsFile = File(apiDir, "SECRETS")
     if (!configFile.exists()) {
-        configFile.writeText(Json(json) { prettyPrint = true }.encodeToString(config))
+        configFile.writeText(
+            Json(json) { prettyPrint = true; encodeDefaults = true }.encodeToString(
+                Config(
+                    dbIP = "",
+                    dbUser = "",
+                    dbPass = ""
+                )
+            )
+        )
         println("Please fill in your config.json! Located at: ${configFile.absolutePath}")
         exitProcess(1)
     }
 
     if (!secretsFile.exists() || secretsFile.readText().isBlank()) {
         println("Make sure you have a secrets file in your API directory.\nThis should contain all valid app-secrets for auth. Separated by a newline.")
-        exitProcess(1)
     }
 
     config = json.decodeFromString(configFile.readText())

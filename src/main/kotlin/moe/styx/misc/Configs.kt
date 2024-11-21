@@ -1,6 +1,7 @@
 package moe.styx.misc
 
 import kotlinx.serialization.Serializable
+import moe.styx.isDocker
 
 @Serializable
 data class Config(
@@ -12,8 +13,8 @@ data class Config(
     val dbIP: String,
     val dbUser: String,
     val dbPass: String,
-    val mpvFolder: String = "",
-    val imageDir: String = "",
-    val buildDir: String = "",
-    val androidBuildDir: String = ""
+    val mpvFolder: String = if (isDocker) "/mpv" else "",
+    val imageDir: String = if (isDocker) "/images" else "",
+    val buildDir: String = if (isDocker) "/builds" else "",
+    val androidBuildDir: String = if (isDocker) "/android-builds" else ""
 )
