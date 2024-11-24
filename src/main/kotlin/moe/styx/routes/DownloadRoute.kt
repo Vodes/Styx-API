@@ -6,8 +6,8 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import moe.styx.common.config.UnifiedConfig
 import moe.styx.common.extension.eqI
-import moe.styx.config
 import moe.styx.respondStyx
 import java.io.File
 
@@ -50,7 +50,10 @@ fun Route.download() {
 }
 
 private suspend fun getBuildForPlatform(platform: String, version: String? = null, call: ApplicationCall): File? {
-    val buildDir = File(if (platform.contains("android", true)) config.androidBuildDir else config.buildDir)
+    val buildDir = File(
+        if (platform.contains("android", true))
+            UnifiedConfig.current.base.androidBuildDir() else UnifiedConfig.current.base.buildDir()
+    )
     if (!buildDir.exists()) {
         call.respondStyx(HttpStatusCode.NotFound, "Could not find any builds on the server.")
         return null

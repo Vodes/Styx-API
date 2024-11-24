@@ -1,11 +1,10 @@
 package moe.styx.routes
 
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.date.*
-import moe.styx.config
+import moe.styx.common.config.UnifiedConfig
 import moe.styx.misc.DiscordAPI
 
 fun Route.discordAuth() {
@@ -30,6 +29,6 @@ fun Route.discordAuth() {
                 extensions = mapOf("SameSite" to "lax")
             )
         )
-        call.respondRedirect(config.mainSiteBaseURL)
+        call.respondRedirect(UnifiedConfig.current.base.siteBaseURL())
     }
 }

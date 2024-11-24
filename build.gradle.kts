@@ -25,7 +25,8 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("moe.styx:styx-db:0.3.0")
+    implementation("moe.styx:styx-db:0.4.0")
+    implementation("moe.styx:styx-common-jvm:0.4.1")
 
     // Server
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
@@ -45,7 +46,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("io.github.z4kn4fein:semver:2.0.0")
 
-    implementation("org.postgresql:postgresql:42.7.3")
+    implementation("org.postgresql:postgresql:42.7.4")
 }
 
 kotlin {

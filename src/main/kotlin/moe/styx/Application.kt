@@ -12,67 +12,32 @@ import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.plugins.partialcontent.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import moe.styx.common.config.UnifiedConfig
 import moe.styx.common.json
 import moe.styx.db.DBClient
-import moe.styx.misc.Config
 import moe.styx.misc.startParsing
 import moe.styx.routes.*
 import moe.styx.tasks.startTasks
 import java.io.File
-import kotlin.system.exitProcess
 
-lateinit var config: Config
 var secretsFile: File = File("SECRETS")
-private var configFile: File = File("")
-
-val isDocker by lazy {
-    File("/.dockerenv").exists()
-}
 
 val dbClient by lazy {
     DBClient(
-        "jdbc:postgresql://${config.dbIP}/Styx",
+        "jdbc:postgresql://${UnifiedConfig.current.dbConfig.host()}/Styx",
         "org.postgresql.Driver",
-        config.dbUser,
-        config.dbPass,
+        UnifiedConfig.current.dbConfig.user(),
+        UnifiedConfig.current.dbConfig.pass(),
         25
     )
 }
 
 fun loadDBConfig() {
-    val apiDir = if (System.getProperty("os.name").lowercase().contains("win")) {
-        val styxDir = File(System.getenv("APPDATA"), "Styx")
-        File(styxDir, "API-v2").also { it.mkdirs() }
-    } else if (isDocker) {
-        File("/config").also { it.mkdirs() }
-    } else {
-        val configDir = File(System.getProperty("user.home"), ".config")
-        val styxDir = File(configDir, "Styx")
-        File(styxDir, "API-v2").also { it.mkdirs() }
-    }
-    configFile = File(apiDir, "config.json")
-    secretsFile = File(apiDir, "SECRETS")
-    if (!configFile.exists()) {
-        configFile.writeText(
-            Json(json) { prettyPrint = true; encodeDefaults = true }.encodeToString(
-                Config(
-                    dbIP = "",
-                    dbUser = "",
-                    dbPass = ""
-                )
-            )
-        )
-        println("Please fill in your config.json! Located at: ${configFile.absolutePath}")
-        exitProcess(1)
-    }
-
+    secretsFile = File(UnifiedConfig.configFile.parentFile, "SECRETS")
     if (!secretsFile.exists() || secretsFile.readText().isBlank()) {
         println("Make sure you have a secrets file in your API directory.\nThis should contain all valid app-secrets for auth. Separated by a newline.")
     }
 
-    config = json.decodeFromString(configFile.readText())
     dbClient.transaction { dbClient.createTables() }
 }
 

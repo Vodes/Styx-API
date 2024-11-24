@@ -1,9 +1,9 @@
 package moe.styx.tasks
 
 import kotlinx.datetime.Clock
+import moe.styx.common.config.UnifiedConfig
 import moe.styx.common.extension.eqI
 import moe.styx.common.extension.toBoolean
-import moe.styx.config
 import moe.styx.db.tables.ImageTable
 import moe.styx.db.tables.MediaTable
 import moe.styx.db.tables.UnregisteredDeviceTable
@@ -42,7 +42,7 @@ private fun deleteUnusedData() {
 
         val unused = images.filter { img -> media.find { it.thumbID eqI img.GUID || it.bannerID eqI img.GUID } == null }
         if (unused.isNotEmpty()) {
-            val files = File(config.imageDir).listFiles()
+            val files = File(UnifiedConfig.current.base.imageDir()).listFiles()
                 ?.filter { it.isFile && it.extension.lowercase() in arrayOf("webp", "png", "jpg", "jpeg") }
                 ?: emptyList<File>()
             if (files.isNotEmpty()) {

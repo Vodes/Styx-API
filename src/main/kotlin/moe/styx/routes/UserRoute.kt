@@ -11,6 +11,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 import kotlinx.serialization.encodeToString
 import moe.styx.*
+import moe.styx.common.config.UnifiedConfig
 import moe.styx.common.data.*
 import moe.styx.common.extension.eqI
 import moe.styx.common.extension.toBoolean
@@ -31,11 +32,11 @@ fun Route.deviceLogin() {
         val (user, device) = checkTokenDeviceUser(token, call, login = true)
         if (device == null || user == null)
             return@post
-        val secret = secretsFile.readLines().filter { it.trim().isNotBlank() }.find { it eqI deviceInfo.appSecret }
-        if (secret == null) {
-            call.respondStyx(HttpStatusCode.FailedDependency, "Invalid app secret.")
+
+        val secretCheckResult = checkSecret(deviceInfo, call)
+        if (!secretCheckResult)
             return@post
-        }
+
         launchGlobal {
             transaction {
                 var ip = call.request.origin.remoteAddress
@@ -87,11 +88,9 @@ fun Route.deviceCreate() {
         val form = call.receiveParameters()
         val deviceInfo = call.receiveGenericContent<DeviceInfo>(form, "info") ?: return@post
 
-        val secret = secretsFile.readLines().filter { it.trim().isNotBlank() }.find { it eqI deviceInfo.appSecret }
-        if (secret == null) {
-            call.respondStyx(HttpStatusCode.FailedDependency, "Invalid app secret.")
+        val secretCheckResult = checkSecret(deviceInfo, call)
+        if (!secretCheckResult)
             return@post
-        }
 
         val unregisteredDevice = UnregisteredDevice(
             UUID.randomUUID().toString().uppercase(), deviceInfo.copy(appSecret = ""),
@@ -132,6 +131,18 @@ fun Route.deviceFirstAuth() {
             call.respond(HttpStatusCode.OK, createLoginResponse(device, user, true))
         }
     }
+}
+
+private suspend fun checkSecret(deviceInfo: DeviceInfo, call: ApplicationCall): Boolean {
+    if (!UnifiedConfig.current.apiConfig.enableSecretsCheck) {
+        return true
+    }
+    val secret = secretsFile.readLines().filter { it.trim().isNotBlank() }.find { it eqI deviceInfo.appSecret }
+    if (secret == null) {
+        call.respondStyx(HttpStatusCode.FailedDependency, "Invalid app secret.")
+        return false
+    }
+    return true
 }
 
 private fun createLoginResponse(device: Device, user: User, first: Boolean = false): LoginResponse {

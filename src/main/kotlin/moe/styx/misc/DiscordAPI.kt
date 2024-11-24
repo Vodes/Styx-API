@@ -9,9 +9,9 @@ import io.ktor.server.response.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import moe.styx.common.config.UnifiedConfig
 import moe.styx.common.http.httpClient
 import moe.styx.common.json
-import moe.styx.config
 
 object DiscordAPI {
     fun getUserFromToken(token: String): DiscordUser? = runBlocking {
@@ -32,9 +32,9 @@ object DiscordAPI {
     suspend fun handleIncomingCode(code: String, call: ApplicationCall) {
         val response = httpClient.submitForm("https://discord.com/api/oauth2/token", formParameters = parameters {
             append("grant_type", "authorization_code")
-            append("client_id", config.discordClientID)
-            append("client_secret", config.discordClientSecret)
-            append("redirect_uri", "${config.baseURL}/discord/auth")
+            append("client_id", UnifiedConfig.current.discord.discordClientID())
+            append("client_secret", UnifiedConfig.current.discord.discordClientSecret())
+            append("redirect_uri", "${UnifiedConfig.current.base.apiBaseURL()}/discord/auth")
             append("code", code)
         }) {
             method = HttpMethod.Post
@@ -56,13 +56,13 @@ object DiscordAPI {
                 extensions = mapOf("SameSite" to "lax")
             )
         )
-        call.respondRedirect(config.mainSiteBaseURL)
+        call.respondRedirect(UnifiedConfig.current.base.siteBaseURL())
     }
 
     fun buildAuthURL(): String {
         val builder = URLBuilder("https://discord.com/api/oauth2/authorize")
-        builder.parameters.append("client_id", config.discordClientID)
-        builder.parameters.append("redirect_uri", "${config.baseURL}/discord/auth")
+        builder.parameters.append("client_id", UnifiedConfig.current.discord.discordClientID())
+        builder.parameters.append("redirect_uri", "${UnifiedConfig.current.base.apiBaseURL()}/discord/auth")
         builder.parameters.append("response_type", "code")
         builder.parameters.append("scope", "identify guilds")
         return builder.buildString()
