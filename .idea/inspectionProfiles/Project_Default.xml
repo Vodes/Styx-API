@@ -5,6 +5,7 @@
       <option name="customHeaders">
         <set>
           <option value="CF-Connecting-IP" />
+          <option value="X-PROXY-IP" />
         </set>
       </option>
     </inspection_tool>

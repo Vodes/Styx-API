@@ -14,6 +14,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import moe.styx.common.config.UnifiedConfig
 import moe.styx.common.json
+import moe.styx.common.util.Log
 import moe.styx.db.DBClient
 import moe.styx.misc.startParsing
 import moe.styx.routes.*
@@ -39,6 +40,7 @@ fun loadDBConfig() {
     }
 
     dbClient.transaction { dbClient.createTables() }
+    Log.debugEnabled = UnifiedConfig.current.debug()
 }
 
 fun <T> transaction(block: () -> T): T =
@@ -51,16 +53,24 @@ fun main() {
     startTasks()
     startParsing()
 
-    embeddedServer(Netty, port = 8081, host = "0.0.0.0", module = Application::module)
-        .start(wait = true)
+    embeddedServer(
+        Netty,
+        host = UnifiedConfig.current.apiConfig.serveHost(),
+        port = UnifiedConfig.current.apiConfig.servePort,
+        module = Application::module
+    ).start(wait = true)
 }
 
 fun Application.module() {
     install(Compression) {
         gzip {
-            priority = 1.0
+            priority = 0.5
             matchContentType(ContentType.Text.Any, ContentType.Application.Json)
         }
+//        encoder(BrotliEncoder()) {
+//            priority = 1.0
+//            matchContentType(ContentType.Text.Any, ContentType.Application.Json, ContentType.Application.Xml)
+//        }
     }
     install(DefaultHeaders) {
         header("X-Engine", "Ktor")
@@ -92,5 +102,6 @@ fun Application.module() {
         mpvRoute()
         downloadVersions()
         download()
+        proxyServers()
     }
 }

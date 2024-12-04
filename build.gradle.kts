@@ -1,5 +1,6 @@
 val ktorVersion: String by project
 val logbackVersion: String by project
+val brotliVersion: String by project
 
 plugins {
     kotlin("jvm") version "2.0.21"
@@ -25,10 +26,9 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("moe.styx:styx-db:0.4.0")
-    implementation("moe.styx:styx-common-jvm:0.4.1")
+    implementation("moe.styx:styx-db:0.4.2")
 
-    // Server
+    // Ktor
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-resources:$ktorVersion")
     implementation("io.ktor:ktor-server-compression-jvm:$ktorVersion")
@@ -44,9 +44,17 @@ dependencies {
     implementation("io.ktor:ktor-server-call-logging:$ktorVersion")
     implementation("io.ktor:ktor-network-tls-jvm:$ktorVersion")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
-    implementation("io.github.z4kn4fein:semver:2.0.0")
 
+    // Misc
+    implementation("io.github.z4kn4fein:semver:2.0.0")
     implementation("org.postgresql:postgresql:42.7.4")
+
+    // Brotli
+//    implementation("com.aayushatharva.brotli4j:brotli4j:$brotliVersion")
+//    runtimeOnly("com.aayushatharva.brotli4j:native-windows-x86_64:$brotliVersion")
+//    runtimeOnly("com.aayushatharva.brotli4j:native-windows-aarch64:$brotliVersion")
+//    runtimeOnly("com.aayushatharva.brotli4j:native-linux-x86_64:$brotliVersion")
+//    runtimeOnly("com.aayushatharva.brotli4j:native-linux-aarch64:$brotliVersion")
 }
 
 kotlin {

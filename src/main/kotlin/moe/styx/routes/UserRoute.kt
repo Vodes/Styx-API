@@ -40,7 +40,9 @@ fun Route.deviceLogin() {
         launchGlobal {
             transaction {
                 var ip = call.request.origin.remoteAddress
-                if (call.request.headers.contains("CF-Connecting-IP")) {
+                if (call.request.headers.contains("X-PROXY-IP")) {
+                    ip = call.request.headers["X-PROXY-IP"] ?: ""
+                } else if (call.request.headers.contains("CF-Connecting-IP")) {
                     ip = call.request.headers["CF-Connecting-IP"] ?: ""
                 }
                 LogTable.upsertItem(
@@ -73,7 +75,9 @@ fun Route.deviceLogin() {
                     ActiveUserTable.deleteWhere { deviceID eq device.GUID }
 
                 var ip = call.request.origin.remoteAddress
-                if (call.request.headers.contains("CF-Connecting-IP")) {
+                if (call.request.headers.contains("X-PROXY-IP")) {
+                    ip = call.request.headers["X-PROXY-IP"] ?: ""
+                } else if (call.request.headers.contains("CF-Connecting-IP")) {
                     ip = call.request.headers["CF-Connecting-IP"] ?: ""
                 }
                 LogTable.upsertItem(Log(user.GUID, device.GUID, LogType.LOGOUT, "IP: $ip", Clock.System.now().epochSeconds))
