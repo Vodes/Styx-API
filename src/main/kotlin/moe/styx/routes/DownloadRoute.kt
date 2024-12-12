@@ -84,6 +84,11 @@ private suspend fun getBuildForPlatform(platform: String, version: String? = nul
                 .also { if (it == null) call.respond(HttpStatusCode.NotFound) }
         }
 
+        "arch", "pacman" -> {
+            return versionDir.walkTopDown().find { it.isFile && it.name.contains("pkg.tar.zst", true) }
+                .also { if (it == null) call.respond(HttpStatusCode.NotFound) }
+        }
+
         "deb", "ubuntu", "debian" -> {
             return versionDir.walkTopDown().find { it.isFile && it.extension eqI "deb" }
                 .also { if (it == null) call.respond(HttpStatusCode.NotFound) }
