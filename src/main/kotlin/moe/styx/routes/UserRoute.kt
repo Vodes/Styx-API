@@ -161,7 +161,7 @@ private suspend fun checkSecret(deviceInfo: DeviceInfo, call: ApplicationCall): 
 private fun createLoginResponse(device: Device, user: User, first: Boolean = false): LoginResponse {
     val now = Clock.System.now()
     device.lastUsed = now.epochSeconds
-    if (now.minus(6.hours).epochSeconds < device.tokenExpiry || first) {
+    if (now.plus(6.hours).epochSeconds > device.tokenExpiry || first) {
         device.accessToken = UUID.randomUUID().toString().uppercase()
         device.watchToken = UUID.randomUUID().toString().uppercase()
         device.tokenExpiry = now.plus(24.hours).epochSeconds
