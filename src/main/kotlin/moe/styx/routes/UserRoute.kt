@@ -23,6 +23,7 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
 import java.util.*
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.hours
 
 fun Route.deviceLogin() {
     post("/login") {
@@ -150,11 +151,14 @@ private suspend fun checkSecret(deviceInfo: DeviceInfo, call: ApplicationCall): 
 }
 
 private fun createLoginResponse(device: Device, user: User, first: Boolean = false): LoginResponse {
-    device.accessToken = UUID.randomUUID().toString().uppercase()
-    device.watchToken = UUID.randomUUID().toString().uppercase()
     val now = Clock.System.now()
     device.lastUsed = now.epochSeconds
-    device.tokenExpiry = now.plus(24, DateTimeUnit.HOUR).epochSeconds
+    if(now.minus(6.hours).epochSeconds < device.tokenExpiry || first) {
+        device.accessToken = UUID.randomUUID().toString().uppercase()
+        device.watchToken = UUID.randomUUID().toString().uppercase()
+        device.tokenExpiry = now.plus(24.hours).epochSeconds
+    }
+
     if (first)
         device.refreshToken = UUID.randomUUID().toString().uppercase()
 

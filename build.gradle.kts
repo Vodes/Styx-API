@@ -26,6 +26,7 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
+    implementation("moe.styx:styx-common:0.4.5")
     implementation("moe.styx:styx-db:0.4.3")
 
     // Ktor
