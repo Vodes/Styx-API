@@ -35,6 +35,7 @@ fun addTraffic(device: Device, bytes: Long) {
 
 fun checkTrafficBuffers() {
     val now = Clock.System.now().epochSeconds
+    val markedForRemoval = mutableListOf<DeviceTrafficBuffer>()
     try {
         for (d in deviceList) {
             if (d.lastUpdated + 10 < now) {
@@ -43,10 +44,14 @@ fun checkTrafficBuffers() {
                         d.bytes = 0
                 }.onFailure {
                     println("Failed to sync traffic for device ID: ${d.device.GUID} (${d.device.name})")
+                    markedForRemoval.add(d)
                 }
             }
         }
     } catch (_: Exception) {
+    }
+    markedForRemoval.forEach { rem ->
+        deviceList.removeIf { it.device.GUID == rem.device.GUID }
     }
 }
 
