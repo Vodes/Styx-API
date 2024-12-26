@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "moe.styx"
-version = "0.3.2"
+version = "0.3.3"
 
 application {
     mainClass.set("moe.styx.ApplicationKt")
