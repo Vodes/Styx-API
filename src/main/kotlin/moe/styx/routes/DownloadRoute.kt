@@ -8,6 +8,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import moe.styx.common.config.UnifiedConfig
 import moe.styx.common.extension.eqI
+import moe.styx.common.extension.equalsAny
 import moe.styx.respondStyx
 import java.io.File
 
@@ -75,7 +76,7 @@ private suspend fun getBuildForPlatform(platform: String, version: String? = nul
     }
     when (platform.lowercase()) {
         "win", "windows" -> {
-            return versionDir.walkTopDown().find { it.isFile && it.extension eqI "msi" }
+            return versionDir.walkTopDown().find { it.isFile && it.extension.equalsAny("msi", "exe") }
                 .also { if (it == null) call.respond(HttpStatusCode.NotFound) }
         }
 
