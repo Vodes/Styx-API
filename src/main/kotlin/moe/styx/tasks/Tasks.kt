@@ -4,6 +4,8 @@ import kotlinx.datetime.Clock
 import moe.styx.common.config.UnifiedConfig
 import moe.styx.common.extension.eqI
 import moe.styx.common.extension.toBoolean
+import moe.styx.common.util.Log
+import moe.styx.db.tables.DeviceTable
 import moe.styx.db.tables.ImageTable
 import moe.styx.db.tables.MediaTable
 import moe.styx.db.tables.UnregisteredDeviceTable
@@ -14,11 +16,15 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
 import java.io.File
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 
 enum class Tasks(val seconds: Int, val run: () -> Unit, val initialWait: Int = 5) {
 
     CLEAN_UNREGISTERED(20, { cleanUnregistered() }, 10),
+
+    REMOVE_DEV_DEVICES(120, { removeDevDevices() }, 10),
 
     BACKUP_DATABASE(86400, { println("Wew") }),
 
@@ -31,6 +37,24 @@ private fun cleanUnregistered() {
     val now = Clock.System.now().epochSeconds
     transaction {
         UnregisteredDeviceTable.deleteWhere { codeExpiry less now }
+    }
+}
+
+private fun removeDevDevices() {
+    val now = Clock.System.now()
+    var removed = 0
+    transaction {
+        val devDevices = DeviceTable.query { selectAll().where { isDevDevice neq 0 }.toList() }
+        for (dd in devDevices) {
+            if (!dd.isDevDevice.toBoolean() || dd.added == 0L)
+                continue
+            if (dd.added < now.minus(3.toDuration(DurationUnit.DAYS)).epochSeconds) {
+                removed += DeviceTable.deleteWhere { GUID eq dd.GUID }
+            }
+        }
+    }
+    if (removed != 0) {
+        Log.i { "Removed $removed dev devices." }
     }
 }
 
@@ -60,7 +84,7 @@ private fun deleteUnusedData() {
         }
     }
     if (deletedImages != 0)
-        println("Deleted unused images: $deletedImages")
+        Log.i { "Deleted unused images: $deletedImages" }
 }
 
 //private fun springCleaning() {
