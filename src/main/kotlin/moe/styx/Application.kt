@@ -19,6 +19,7 @@ import moe.styx.db.DBClient
 import moe.styx.misc.startParsing
 import moe.styx.routes.*
 import moe.styx.tasks.startTasks
+import pw.vodes.zstd.zstd
 import java.io.File
 
 var secretsFile: File = File("SECRETS")
@@ -29,7 +30,7 @@ val dbClient by lazy {
         "org.postgresql.Driver",
         UnifiedConfig.current.dbConfig.user(),
         UnifiedConfig.current.dbConfig.pass(),
-        25
+        20
     )
 }
 
@@ -67,10 +68,11 @@ fun Application.module() {
             priority = 0.5
             matchContentType(ContentType.Text.Any, ContentType.Application.Json)
         }
-//        encoder(BrotliEncoder()) {
-//            priority = 1.0
-//            matchContentType(ContentType.Text.Any, ContentType.Application.Json, ContentType.Application.Xml)
-//        }
+        zstd {
+            priority = 1.0
+            minimumSize(2048)
+            matchContentType(ContentType.Text.Any, ContentType.Application.Json, ContentType.Application.Xml)
+        }
     }
     install(DefaultHeaders) {
         header("X-Engine", "Ktor")

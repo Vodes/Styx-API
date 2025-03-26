@@ -48,6 +48,7 @@ dependencies {
     // Misc
     implementation("io.github.z4kn4fein:semver:2.0.0")
     implementation("org.postgresql:postgresql:42.7.4")
+    implementation("pw.vodes:ktor-compression-zstd:0.0.1-alpha1")
 
     // Brotli
 //    implementation("com.aayushatharva.brotli4j:brotli4j:$brotliVersion")
