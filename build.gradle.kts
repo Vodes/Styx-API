@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "moe.styx"
-version = "0.4.0"
+version = "0.4.1"
 
 application {
     mainClass.set("moe.styx.ApplicationKt")
@@ -26,7 +26,7 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("moe.styx:styx-db:0.5.1")
+    implementation("moe.styx:styx-db:0.5.2")
 
     // Ktor
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
