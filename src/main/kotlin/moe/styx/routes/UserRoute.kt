@@ -6,7 +6,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
-import kotlinx.serialization.encodeToString
 import moe.styx.*
 import moe.styx.common.config.UnifiedConfig
 import moe.styx.common.data.*
@@ -182,7 +181,8 @@ private fun createLoginResponse(device: Device, user: User, first: Boolean = fal
         device.accessToken,
         device.watchToken,
         device.tokenExpiry,
-        if (first) device.refreshToken else null
+        if (first) device.refreshToken else null,
+        user.anilistData
     )
 }
 
