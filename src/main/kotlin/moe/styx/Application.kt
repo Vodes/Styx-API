@@ -94,6 +94,7 @@ fun Application.module() {
         discordAuth()
 
         media()
+        userMediaPrefs()
         favourites()
         watched()
         watch()

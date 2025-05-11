@@ -70,7 +70,6 @@ fun Route.media() {
     }
 }
 
-
 fun Route.changes() {
     get("/changes") {
         call.respond(HttpStatusCode.OK, transaction { ChangesTable.getCurrent() } ?: Changes(0, 0))
@@ -199,6 +198,26 @@ fun Route.watched() {
             queuedChanges.toRemove.forEach { mediaWatched -> MediaWatchedTable.deleteWhere { userID eq user.GUID and (entryID eq mediaWatched.entryID) } }
         }
         call.respondStyx(HttpStatusCode.OK, "")
+    }
+}
+
+fun Route.userMediaPrefs() {
+    post("/media/preferences") {
+        val form = call.receiveParameters()
+        val token = form["token"]
+
+        val user = checkTokenUser(token, call) ?: return@post
+        val prefs = call.receiveGenericContent<UserMediaPreferences>(form) ?: return@post
+
+        val result = transaction {
+            UserMediaPreferencesTable.upsertItem(prefs.copy(userID = user.GUID))
+        }.insertedCount.toBoolean()
+        
+        if (result) {
+            call.respondStyx(HttpStatusCode.OK, "Preferences added.")
+        } else {
+            call.respondStyx(HttpStatusCode.InternalServerError, "Failed to save/update preferences.")
+        }
     }
 }
 
