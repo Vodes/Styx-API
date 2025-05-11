@@ -3,9 +3,9 @@ val logbackVersion: String by project
 val brotliVersion: String by project
 
 plugins {
-    kotlin("jvm") version "2.1.10"
-    id("io.ktor.plugin") version "3.1.2"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.10"
+    kotlin("jvm") version "2.1.20"
+    id("io.ktor.plugin") version "3.1.3"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.20"
 }
 
 group = "moe.styx"
@@ -26,7 +26,7 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("moe.styx:styx-db:0.5.2")
+    implementation("moe.styx:styx-db:0.5.3")
 
     // Ktor
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
