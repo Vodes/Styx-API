@@ -202,7 +202,7 @@ fun Route.watched() {
 }
 
 fun Route.userMediaPrefs() {
-    post("/media/preferences") {
+    post("/media/preferences/update") {
         val form = call.receiveParameters()
         val token = form["token"]
 
@@ -212,12 +212,18 @@ fun Route.userMediaPrefs() {
         val result = transaction {
             UserMediaPreferencesTable.upsertItem(prefs.copy(userID = user.GUID))
         }.insertedCount.toBoolean()
-        
+
         if (result) {
             call.respondStyx(HttpStatusCode.OK, "Preferences added.")
         } else {
             call.respondStyx(HttpStatusCode.InternalServerError, "Failed to save/update preferences.")
         }
+    }
+    post("/media/preferences/list") {
+        val form = call.receiveParameters()
+        val token = form["token"]
+        val user = checkTokenUser(token, call) ?: return@post
+        call.respond(HttpStatusCode.OK, transaction { UserMediaPreferencesTable.query { selectAll().where { userID eq user.GUID }.toList() } })
     }
 }
 
