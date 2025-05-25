@@ -70,7 +70,7 @@ fun Application.module() {
         }
         zstd {
             priority = 1.0
-            minimumSize(2048)
+            minimumSize(1048)
             matchContentType(ContentType.Text.Any, ContentType.Application.Json, ContentType.Application.Xml)
         }
     }
