@@ -27,7 +27,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation("moe.styx:styx-db:0.5.5")
-    implementation("moe.styx:styx-lib-mal:0.0.1")
+    implementation("moe.styx:styx-lib-mal:0.0.3")
 
     // Ktor
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")

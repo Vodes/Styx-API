@@ -6,7 +6,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import moe.styx.common.extension.currentUnixSeconds
 import moe.styx.db.tables.UserTable
-import moe.styx.misc.NoRefreshMALClient
+import moe.styx.libs.mal.NoRefreshMALClient
 import moe.styx.respondStyx
 import moe.styx.transaction
 import kotlin.time.Duration.Companion.minutes

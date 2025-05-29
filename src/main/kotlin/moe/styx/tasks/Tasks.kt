@@ -6,7 +6,7 @@ import moe.styx.common.extension.eqI
 import moe.styx.common.extension.toBoolean
 import moe.styx.common.util.Log
 import moe.styx.db.tables.*
-import moe.styx.misc.NoRefreshMALClient
+import moe.styx.libs.mal.NoRefreshMALClient
 import moe.styx.routes.watch.checkTrafficBuffers
 import moe.styx.transaction
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
