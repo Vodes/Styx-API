@@ -5,10 +5,8 @@ import moe.styx.common.config.UnifiedConfig
 import moe.styx.common.extension.eqI
 import moe.styx.common.extension.toBoolean
 import moe.styx.common.util.Log
-import moe.styx.db.tables.DeviceTable
-import moe.styx.db.tables.ImageTable
-import moe.styx.db.tables.MediaTable
-import moe.styx.db.tables.UnregisteredDeviceTable
+import moe.styx.db.tables.*
+import moe.styx.misc.NoRefreshMALClient
 import moe.styx.routes.watch.checkTrafficBuffers
 import moe.styx.transaction
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -29,6 +27,8 @@ enum class Tasks(val seconds: Int, val run: () -> Unit, val initialWait: Int = 5
     BACKUP_DATABASE(86400, { println("Wew") }),
 
     SYNC_TRAFFIC(15, { checkTrafficBuffers() }, 10),
+
+    UPDATE_MAL_TOKENS(86400, { updateRefreshTokens() }, 30),
 
     SPRING_CLEANING(86400, { deleteUnusedData() }, 120)
 }
@@ -55,6 +55,25 @@ private fun removeDevDevices() {
     }
     if (removed != 0) {
         Log.i { "Removed $removed dev devices." }
+    }
+}
+
+private fun updateRefreshTokens() {
+    val config = UnifiedConfig.current
+    if (config.webConfig.malClientID.isBlank() || config.webConfig.malClientSecret.isBlank())
+        return
+    val now = Clock.System.now()
+    val monthDuration = 30.toDuration(DurationUnit.DAYS).inWholeSeconds
+    transaction {
+        val users = UserTable.query { selectAll().where { malData.isNotNull() }.toList() }
+        users.forEach { u ->
+            if (u.malData!!.refreshTokenExpiry < (now.epochSeconds + monthDuration)) {
+                val newData = NoRefreshMALClient.refreshTokenForUser(u)
+                if (newData != null) {
+                    UserTable.upsertItem(u.copy(malData = newData))
+                }
+            }
+        }
     }
 }
 

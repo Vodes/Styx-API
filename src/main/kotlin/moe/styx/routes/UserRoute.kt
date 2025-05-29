@@ -182,7 +182,8 @@ private fun createLoginResponse(device: Device, user: User, first: Boolean = fal
         device.watchToken,
         device.tokenExpiry,
         if (first) device.refreshToken else null,
-        user.anilistData
+        user.anilistData,
+        user.malData
     )
 }
 

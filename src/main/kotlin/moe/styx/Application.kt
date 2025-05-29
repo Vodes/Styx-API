@@ -92,6 +92,7 @@ fun Application.module() {
         deviceCreate()
         deviceFirstAuth()
         discordAuth()
+        userMALRoutes()
 
         media()
         userMediaPrefs()
