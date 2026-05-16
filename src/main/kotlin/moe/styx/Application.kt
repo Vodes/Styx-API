@@ -44,10 +44,7 @@ fun loadDBConfig() {
     Log.debugEnabled = UnifiedConfig.current.debug()
 }
 
-fun <T> transaction(block: () -> T): T =
-    org.jetbrains.exposed.sql.transactions.transaction(dbClient.databaseConnection) {
-        block()
-    }
+fun <T> transaction(block: () -> T): T = dbClient.transaction { block() }
 
 fun main() {
     loadDBConfig()

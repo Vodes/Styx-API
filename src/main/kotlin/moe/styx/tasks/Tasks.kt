@@ -1,6 +1,5 @@
 package moe.styx.tasks
 
-import kotlinx.datetime.Clock
 import moe.styx.common.config.UnifiedConfig
 import moe.styx.common.extension.eqI
 import moe.styx.common.extension.toBoolean
@@ -9,11 +8,14 @@ import moe.styx.db.tables.*
 import moe.styx.libs.mal.NoRefreshMALClient
 import moe.styx.routes.watch.checkTrafficBuffers
 import moe.styx.transaction
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.isNotNull
+import org.jetbrains.exposed.v1.core.less
+import org.jetbrains.exposed.v1.core.neq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.io.File
+import kotlin.time.Clock
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 

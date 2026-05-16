@@ -6,7 +6,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import moe.styx.db.tables.ProxyServerTable
 import moe.styx.transaction
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.v1.jdbc.selectAll
 
 fun Route.proxyServers() {
     post("/proxy-servers") {

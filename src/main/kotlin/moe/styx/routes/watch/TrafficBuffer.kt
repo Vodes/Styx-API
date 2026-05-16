@@ -1,14 +1,17 @@
 package moe.styx.routes.watch
 
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import moe.styx.common.data.Device
 import moe.styx.common.extension.toBoolean
 import moe.styx.db.tables.DeviceTrafficTable
 import moe.styx.transaction
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.upsert
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.upsert
+import kotlin.time.Clock
 
 private var deviceList = mutableListOf<DeviceTrafficBuffer>()
 
@@ -63,15 +66,15 @@ fun syncTrafficToDB(buffer: DeviceTrafficBuffer): Boolean {
                 .where {
                     DeviceTrafficTable.deviceID eq buffer.device.GUID and
                             (DeviceTrafficTable.year eq now.year) and
-                            (DeviceTrafficTable.month eq now.monthNumber) and
-                            (DeviceTrafficTable.day eq now.dayOfMonth)
+                            (DeviceTrafficTable.month eq now.month.number) and
+                            (DeviceTrafficTable.day eq now.day)
                 }.toList().firstOrNull()
 
         DeviceTrafficTable.upsert {
             it[deviceID] = buffer.device.GUID
             it[year] = now.year
-            it[month] = now.monthNumber
-            it[day] = now.dayOfMonth
+            it[month] = now.month.number
+            it[day] = now.day
             it[bytes] = existing?.let { it[bytes] + buffer.bytes } ?: buffer.bytes
         }
     }.insertedCount.toBoolean()

@@ -1,18 +1,16 @@
 package moe.styx.routes
 
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
-import kotlinx.datetime.Clock
-import kotlinx.serialization.encodeToString
 import moe.styx.common.data.ActiveUser
 import moe.styx.common.data.ClientHeartbeat
 import moe.styx.common.json
 import moe.styx.db.tables.ActiveUserTable
 import moe.styx.respondStyx
 import moe.styx.transaction
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import kotlin.time.Clock
 
 fun Route.heartbeat() {
     post("/heartbeat") {

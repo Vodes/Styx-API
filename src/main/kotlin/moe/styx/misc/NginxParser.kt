@@ -12,7 +12,7 @@ import moe.styx.db.tables.APIStateTable
 import moe.styx.db.tables.DeviceTable
 import moe.styx.routes.watch.addTraffic
 import moe.styx.transaction
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.io.File
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
