@@ -7,6 +7,7 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.autohead.*
 import io.ktor.server.plugins.compression.*
+import io.ktor.server.plugins.compression.zstd.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.defaultheaders.*
 import io.ktor.server.plugins.partialcontent.*
@@ -19,7 +20,6 @@ import moe.styx.db.DBClient
 import moe.styx.misc.startParsing
 import moe.styx.routes.*
 import moe.styx.tasks.startTasks
-import pw.vodes.zstd.zstd
 import java.io.File
 
 var secretsFile: File = File("SECRETS")

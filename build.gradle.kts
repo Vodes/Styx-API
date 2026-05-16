@@ -33,6 +33,7 @@ dependencies {
     implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-resources:$ktorVersion")
     implementation("io.ktor:ktor-server-compression-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-compression-zstd:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-default-headers-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-partial-content-jvm:$ktorVersion")
@@ -49,7 +50,6 @@ dependencies {
     // Misc
     implementation("io.github.z4kn4fein:semver:2.0.0")
     implementation("org.postgresql:postgresql:42.7.7")
-    implementation("pw.vodes:ktor-compression-zstd:0.0.1-alpha1")
 
     // Brotli
 //    implementation("com.aayushatharva.brotli4j:brotli4j:$brotliVersion")
