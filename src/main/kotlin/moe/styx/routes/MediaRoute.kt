@@ -6,14 +6,14 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import moe.styx.common.data.*
+import moe.styx.common.extension.currentUnixSeconds
 import moe.styx.common.extension.toBoolean
 import moe.styx.common.json
 import moe.styx.db.tables.*
 import moe.styx.respondStyx
 import moe.styx.transaction
-import org.jetbrains.exposed.v1.core.SortOrder
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import java.io.File
@@ -281,21 +281,30 @@ suspend fun checkTokenUser(token: String?, call: ApplicationCall): User? {
 suspend fun checkTokenDeviceUser(token: String?, call: ApplicationCall, login: Boolean = false, watch: Boolean = false): Pair<User?, Device?> {
     if (token.isNullOrBlank())
         call.respondStyx(HttpStatusCode.BadRequest, "No token was found in your request.").also { return null to null }
-    val device = transaction { DeviceTable.query { selectAll().toList() } }.find {
-        if (!login)
-            if (watch)
-                it.watchToken.equals(token, true)
-            else
-                it.accessToken.equals(token, true)
-        else
-            it.refreshToken.equals(token, true)
+    val now = currentUnixSeconds()
+    val device = if (login) {
+        transaction {
+            DeviceTable.query { selectAll().where { refreshToken eq token }.toList() }.firstOrNull()
+        }
+    } else {
+        transaction {
+            DeviceTable.query {
+                selectAll().where { (watchToken eq token) or (accessToken eq token) }.andWhere { tokenExpiry greater now }.toList()
+            }.find {
+                if (watch)
+                    it.watchToken == token
+                else
+                    it.accessToken == token
+            }
+        }
     }
+
     if (device == null)
         call.respondStyx(HttpStatusCode.Unauthorized, "No device has been found for this token.").also {
             return null to null
         }
 
-    val user = transaction { UserTable.query { selectAll().where { GUID eq device!!.userID }.toList() } }.firstOrNull()
+    val user = transaction { UserTable.query { selectAll().where { GUID eq device.userID }.toList() } }.firstOrNull()
     if (user == null)
         call.respondStyx(HttpStatusCode.Unauthorized, "No user relating to this device has been found.")
 
