@@ -1,6 +1,7 @@
 package moe.styx.tasks
 
 import moe.styx.common.config.UnifiedConfig
+import moe.styx.common.extension.currentUnixSeconds
 import moe.styx.common.extension.eqI
 import moe.styx.common.extension.toBoolean
 import moe.styx.common.util.Log
@@ -25,6 +26,8 @@ enum class Tasks(val seconds: Int, val run: () -> Unit, val initialWait: Int = 5
     CLEAN_UNREGISTERED(20, { cleanUnregistered() }, 10),
 
     REMOVE_DEV_DEVICES(120, { removeDevDevices() }, 10),
+    
+    REMOVE_WEB_TEMP_STUFF(120, { removeExpiredWebTokens() }, 10),
 
     BACKUP_DATABASE(86400, { println("Wew") }),
 
@@ -58,6 +61,17 @@ private fun removeDevDevices() {
     if (removed != 0) {
         Log.i { "Removed $removed dev devices." }
     }
+}
+
+private fun removeExpiredWebTokens() {
+    val now = currentUnixSeconds()
+    val removedWebLinks = transaction { WebTempLinkTable.deleteWhere { expiresAt less now } }
+    val removedWebTokens = transaction { WebLoginTable.deleteWhere { expiresAt less now } }
+
+    if (removedWebLinks != 0)
+        Log.i { "Deleted $removedWebLinks temp links." }
+    if (removedWebTokens != 0)
+        Log.i { "Deleted $removedWebTokens web login tokens." }
 }
 
 private fun updateRefreshTokens() {
